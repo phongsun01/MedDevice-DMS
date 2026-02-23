@@ -31,7 +31,7 @@ MedDevice DMS là giải pháp quản lý hồ sơ kỹ thuật, thông số và
 
 ## 🚀 Bắt đầu
 
-Dự án đang trong giai đoạn phát triển ban đầu (v0.1.0).
+Dự án đang trong giai đoạn phát triển ban đầu (v1.0.0).
 
 1. Clone dự án: `git clone https://github.com/phongsun01/MedDevice-DMS`
 2. Cấu hình file `.env` (xem `.env.example`)
