@@ -1,6 +1,6 @@
 -- ============================================================
 -- MedDevice DMS - SurrealDB Schema Definition
--- Version: 1.0.0
+-- Version: 1.0.1
 -- ============================================================
 
 -- Vietnamese text analyzer

@@ -143,4 +143,4 @@ tar -czf storage_backup_$(date +%Y%m%d).tar.gz storage/
 
 ## 📋 Version
 
-- **v1.0.0** — Initial release: SurrealDB schema, AI Agents, Telegram Bot, Wiki integration, Docker deployment.
+- **v1.0.1** — Windows release: Added `setup.bat`, updated credentials and audit flow.
