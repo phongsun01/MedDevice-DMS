@@ -33,7 +33,7 @@ MedDevice DMS là giải pháp quản lý hồ sơ kỹ thuật, thông số và
 
 ```
 meddevice-dms/
-├── main.py              # Entry point (polling or webhook mode)
+├── main.py              # Entry point (aiohttp webhook)
 ├── config.py            # Pydantic settings (.env loader)
 ├── requirements.txt     # Python dependencies
 ├── Dockerfile
@@ -143,7 +143,7 @@ tar -czf storage_backup_$(date +%Y%m%d).tar.gz storage/
 
 ## 📋 Version
 
-- **v1.1.0** — First working release: bot confirmed running in polling mode. Fixed SurrealDB v3 incompatibilities (memory mode, schema syntax). Fixed Box Drive Docker BuildKit issue. Added auto polling/webhook mode detection in `main.py`.
+- **v1.1.0** — Release: Bot confirmed running in polling mode. Fixed SurrealDB v3 incompatibilities (named volumes, schema syntax). Fixed Box Drive Docker BuildKit issue. Added auto polling/webhook fallback.
 - **v1.0.3** — Docker fix: Added daemon check and removed obsolete version tag.
 - **v1.0.2** — Docker fix: Switched to `docker compose` for better compatibility and fixed Windows encoding.
 - **v1.0.1** — Windows release: Added `setup.bat`, updated credentials and audit flow.

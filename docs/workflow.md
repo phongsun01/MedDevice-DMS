@@ -40,6 +40,13 @@ Quy trình theo thứ tự: User gửi tài liệu qua Telegram → Agent xử l
 
 Setup ban đầu: Prompt Antigravity "Build this workflow with SurrealDB + Telegram bot".[^6]
 
+## 🛠 Lưu ý triển khai (Deployment Notes)
+
+1. **Tương thích Box Drive**: Nếu chạy project trong thư mục đồng bộ Box Drive, cần thiết lập `set DOCKER_BUILDKIT=0` trong `setup.bat` để tránh lỗi đọc file.
+2. **SurrealDB Storage**: Trong môi trường development, SurrealDB được cấu hình chạy `memory` mode để đạt hiệu năng cao nhất và tránh lỗi lock file trên Windows.
+3. **Polling vs Webhook**: Hệ thống tự động nhận diện `WEBHOOK_URL`. Nếu chưa có tunnel (ngrok/cloudflare), Bot sẽ tự động chạy `polling` mode để bạn có thể test ngay lập tức.
+
+
 <div align="center">⁂</div>
 
 [^1]: https://www.reddit.com/r/google_antigravity/comments/1q31qxa/made_a_tool_to_control_my_ide_from_telegram/
