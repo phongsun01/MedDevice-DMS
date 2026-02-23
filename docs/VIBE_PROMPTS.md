@@ -96,19 +96,37 @@ Start by creating all files and folder structure. Do not write any code yet, jus
 ```
 Now implement db/schema.surql with the following requirements:
 
-1. Define all tables SCHEMAFULL: category, device_group, device, document
-2. Define all fields with correct types
-3. Define INDEXES:
-   - Full-text search index on document.content_text using custom analyzer
-   - Full-text search index on document.metadata.title
-   - Index on device.name, device.model, device.brand
-   - Index on document.doc_type, document.device
-4. Define Vietnamese-compatible text ANALYZER named "vn_analyzer" using tokenizers: blank, class — with filters: lowercase, ascii
-5. Define PERMISSIONS: only authenticated users can read/write
-6. Also implement db/client.py:
-   - Async SurrealDB client singleton using surrealdb Python SDK
-   - Helper functions: connect(), query(), create_record(), update_record(), delete_record()
-   - Auto-reconnect on disconnect
+1. Define all tables SCHEMAFULL:
+   - category
+   - device_group
+   - device
+   - document
+   - audit_log
+
+2. Define all fields with correct types (use record<link> for relations).
+
+3. Define Vietnamese analyzer exactly:
+   DEFINE ANALYZER vn_analyzer TOKENIZERS blank, class FILTERS lowercase, ascii;
+
+4. Define INDEXES:
+   - DEFINE INDEX idx_content ON document FIELDS content_text SEARCH ANALYZER vn_analyzer;
+   - DEFINE INDEX idx_metadata ON document FIELDS metadata.title SEARCH ANALYZER vn_analyzer;
+   - DEFINE INDEX idx_device_name ON device FIELDS name;
+   - DEFINE INDEX idx_device_model ON device FIELDS model;
+   - DEFINE INDEX idx_device_brand ON device FIELDS brand;
+   - DEFINE INDEX idx_doc_type ON document FIELDS doc_type;
+   - DEFINE INDEX idx_doc_device ON document FIELDS device;
+
+5. Define audit_log table:
+   id, action (string), table_name (string), record_id (string), telegram_user_id (string), timestamp (datetime), changes (object)
+
+6. Define PERMISSIONS: only authenticated users can read/write all tables.
+
+7. Also implement db/client.py:
+   - AsyncSurreal singleton (from surrealdb import AsyncSurreal)
+   - Helper functions: connect(), query(), create(), update(), delete(), create_audit_log()
+   - Auto-reconnect logic with retry
+   - All functions must be async
 ```
 
 ***
@@ -116,31 +134,27 @@ Now implement db/schema.surql with the following requirements:
 ## Sub-Prompt 2 – Parse Agent
 
 ```
-Implement agents/parse_agent.py with these functions:
+Implement agents/parse_agent.py with these functions (all async where possible):
 
 1. extract_text_from_pdf(file_path: str) -> str
-   - Use PyMuPDF (fitz) to extract all text
-   - Handle Vietnamese encoding
-   - Return cleaned text (remove excessive whitespace)
+   - Use PyMuPDF (fitz)
+   - Handle Vietnamese encoding properly
+   - Clean text (remove excessive whitespace, fix line breaks)
 
 2. classify_document(filename: str, caption: str = None) -> dict
-   - Use rules-based first: match filename patterns to doc_type/sub_type
-   - Rules examples:
-     * filename contains "huong_dan|manual|IFU" → technical
-     * filename contains "bao_gia|quotation|quote" → price/quotation
-     * filename contains "hop_dong|contract" → contract
-     * filename contains "quang_cao|advertising" → config/advertising
-     * caption format "type|device_name|sub_type" overrides rules
-   - Fallback: call Gemini API with first 500 chars of content to classify
-   - Return: {doc_type, sub_type, confidence}
+   - Rules-based first (same as before)
+   - Fallback to Gemini API (first 500 chars)
+   - Return {doc_type, sub_type, confidence: float}
 
-3. process_upload(file_path: str, device_id: str, caption: str = None) -> dict
+3. process_upload(file_path: str, device_id: str, caption: str = None, telegram_user_id: str = None) -> dict
    - Classify document
    - Extract text if PDF
-   - Move file to correct storage path: STORAGE_BASE/{category}/{group}/{device_id}/{doc_type}/
+   - Move file to correct storage path: STORAGE_BASE/{category}/{device_group}/{device_id}/{doc_type}/
    - Create document record in SurrealDB
+   - Call db.client.create_audit_log("create", "document", new_doc_id, telegram_user_id)
    - Trigger wiki_agent.update_device_page(device_id)
    - Return document record
+   - Use structlog for logging, raise custom exceptions on error
 ```
 
 ***
@@ -148,26 +162,23 @@ Implement agents/parse_agent.py with these functions:
 ## Sub-Prompt 3 – Search Agent
 
 ```
-Implement agents/search_agent.py:
+Implement agents/search_agent.py (all functions async):
 
 1. search_documents(query: str, filters: dict = {}) -> list[dict]
-   - Build SurrealQL with FULLTEXT search on content_text
-   - Apply filters: category_id, group_id, device_id, doc_type
-   - Use search::highlight('<b>', '</b>', 1) for highlights
-   - Return top 10 results with: device_name, doc_type, sub_type, highlight_snippet, file_path, doc_id
+   - Use SurrealQL FULLTEXT with SEARCH ANALYZER vn_analyzer
+   - Support filters: category_id, device_group_id, device_id, doc_type
+   - Use search::highlight('<b>', '</b>', 1)
+   - Return top 10 with highlight_snippet
 
 2. search_devices(query: str) -> list[dict]
-   - Search on device.name, device.model, device.brand
-   - Return device list with group and category info
+   - Search device.name, model, brand
+   - Join with device_group and category
 
 3. format_search_results_telegram(results: list) -> str
-   - Format as numbered list for Telegram
-   - Each item: "1. [device_name] - [doc_type] ([sub_type])\n   📄 ...highlight...\n   ID: doc_id"
-   - Max 10 results, show count
+   - Telegram-friendly format
 
 4. get_device_profile(device_id: str) -> dict
-   - Fetch device + all documents grouped by doc_type
-   - Return structured dict for display
+   - Fetch full device + documents grouped by doc_type
 ```
 
 ***
@@ -175,33 +186,18 @@ Implement agents/search_agent.py:
 ## Sub-Prompt 4 – Compare Agent
 
 ```
-Implement agents/compare_agent.py:
+Implement agents/compare_agent.py (all async):
 
-1. compare_devices(device_id_a: str, device_id_b: str) -> dict
-   - Check if "comparison" doc exists for either device → use it first
-   - Otherwise: fetch technical docs (EN preferred) for both devices
-   - Call Gemini with both content_texts:
-     Prompt: "Extract all technical specifications from the following two documents as JSON. 
-     Return format: {specs: [{name: string, value_a: string, value_b: string}], 
-     device_a: string, device_b: string}"
-   - Return structured comparison dict
+1. compare_devices(device_id_a: str, device_id_b: str, telegram_user_id: str = None) -> dict
+   - Prefer existing "comparison" document
+   - Otherwise use Gemini 1.5 to extract specs as JSON
+   - After comparison, create audit_log entry
 
 2. render_comparison_table_markdown(comparison: dict) -> str
-   - Render as Telegram-friendly markdown table
-   - Header: device names
-   - Rows: each spec with both values
-   - Highlight differences with emoji ⚠️
 
 3. export_comparison_xlsx(comparison: dict, output_path: str) -> str
-   - Use openpyxl to create formatted Excel file
-   - Sheet 1: comparison table with header row styled
-   - Return file path
 
-4. compare_handler(device_name_a: str, device_name_b: str) -> tuple[str, str]
-   - Fuzzy match device names to IDs
-   - Run comparison
-   - Export XLSX
-   - Return (markdown_text, xlsx_path)
+4. compare_handler(device_name_a: str, device_name_b: str, telegram_user_id: str) -> tuple[str, str]
 ```
 
 ***
@@ -209,35 +205,22 @@ Implement agents/compare_agent.py:
 ## Sub-Prompt 5 – Wiki Agent (Outline.dev)
 
 ```
-Implement agents/wiki_agent.py using Outline.dev REST API:
+Implement agents/wiki_agent.py:
 
-1. OutlineClient class:
-   - __init__(api_url, api_token)
-   - async create_document(title, content, collection_id, parent_id=None) -> str (doc_id)
-   - async update_document(doc_id, title, content) -> bool
-   - async find_document_by_title(title) -> str | None
-   - async get_or_create_collection(name) -> str (collection_id)
+1. OutlineClient class with all async methods (create_document, update_document, find_document_by_title, get_or_create_collection)
 
 2. generate_device_page_markdown(device: dict, documents: list) -> str
-   - Generate full Markdown page for a device
-   - Sections: Overview table (model/brand/origin/year), then one section per doc_type
-   - Each doc section lists files with emoji icons by type: 📄 PDF, 📊 Excel, 🔗 Link
-   - Include breadcrumb: Category > Group > Device
+   - Professional Markdown with sections by doc_type
+   - Use emoji icons per type
 
-3. update_device_page(device_id: str):
-   - Fetch device profile from SurrealDB
+3. update_device_page(device_id: str, telegram_user_id: str = None):
+   - Fetch profile
    - Generate markdown
-   - Find existing Outline page → update, or create new
-   - Collections structure: one collection per Category, pages nested by Group
+   - Update or create Outline page
+   - Create audit_log for wiki update
 
-4. generate_index_page(category_id: str = None):
-   - Generate master index page listing all devices in a category/all categories
-   - Auto-update after any device change
-
-Setup collection hierarchy in Outline:
-  Collection: [Category Name]
-    Page: [Group Name] (index of devices in group)
-      Sub-page: [Device Name] (full device profile)
+4. generate_index_page(category_id: str = None)
+   - Auto-update after any change
 ```
 
 ***
@@ -245,49 +228,41 @@ Setup collection hierarchy in Outline:
 ## Sub-Prompt 6 – Telegram Bot
 
 ```
-Implement the complete Telegram bot using aiogram 3.x:
+Implement the complete Telegram bot using aiogram 3.x + FSM:
 
-bot/handlers/browse.py:
-- /start → show main menu inline keyboard: [🔍 Tìm kiếm] [📁 Duyệt hồ sơ] [➕ Thêm thiết bị] [📊 So sánh]
-- /list → show categories as inline buttons
-- On category select → show groups
-- On group select → show devices (paginated, 10/page)
-- On device select → show device summary + inline buttons: [📄 Xem tài liệu] [🌐 Mở Wiki] [📊 So sánh]
+First create bot/states.py:
+from aiogram.fsm.state import StatesGroup, State
 
-bot/handlers/files.py:
-- Handle file upload: user sends file → bot asks for device name (or caption format "type|device|subtype")
-- /get <doc_id> → send file from storage path back to user (use bot.send_document)
-- /docs <device_name> → show all documents grouped by type, each with /get link
+class AddDeviceStates(StatesGroup):
+    category = State()
+    device_group = State()
+    name = State()
+    model = State()
+    brand = State()
+    origin = State()
+    year = State()
+    confirm = State()
 
-bot/handlers/search.py:
-- /search <query> → call search_agent → format + reply
-- Handle follow-up: "xem thêm" → next page of results
+class CompareStates(StatesGroup):
+    device_a = State()
+    device_b = State()
 
-bot/handlers/compare.py:
-- /compare <A> <B> or /compare then ask step by step
-- Send markdown table first, then send XLSX file
+# (thêm các state khác nếu cần)
 
-bot/handlers/wiki.py:
-- /wiki → link to Outline index
-- /wiki <device_name> → find device, return direct Outline page URL
+Then implement:
 
-bot/handlers/add.py:
-- /add → start conversation: ask category (inline buttons) → group → device name → model → brand → origin → confirm
-- Create device record in SurrealDB, trigger wiki page creation
-
-bot/middleware.py:
-- Check user ID against TELEGRAM_ALLOWED_USERS
-- Block unauthorized users
-
-bot/keyboards.py:
-- Reusable inline keyboard builders
-- Pagination keyboard builder
-
-main.py:
-- Start SurrealDB connection
-- Register all handlers
-- Set webhook (not polling) using WEBHOOK_URL
-- Start aiohttp webhook server on port 8080
+bot/handlers/browse.py, files.py, search.py, compare.py, wiki.py, add.py
+- All handlers use FSM where multi-step is needed
+- /start → main menu inline keyboard
+- File upload + caption support
+- /get <doc_id>, /docs <device>, /compare, /wiki, /add (full conversation with FSM)
+- bot/middleware.py: strict check TELEGRAM_ALLOWED_USERS + log unauthorized attempts
+- bot/keyboards.py: reusable + pagination
+- main.py: 
+  - async start with webhook (aiohttp)
+  - register all handlers + states
+  - start SurrealDB connection
+  - structlog setup
 ```
 
 ***
@@ -295,57 +270,28 @@ main.py:
 ## Sub-Prompt 7 – Docker & Deployment
 
 ```
-Create docker-compose.yml to run the full stack locally:
+Create docker-compose.yml, Dockerfile, .env.outline, setup.sh, README.md (Vietnamese):
 
-services:
-  surrealdb:
-    image: surrealdb/surrealdb:latest
-    command: start --log trace --user root --pass root file://data/database.db
-    ports: ["8000:8000"]
-    volumes: ["./data/surreal:/data"]
+docker-compose.yml phải bao gồm:
+- surrealdb
+- outline (với postgres, redis, minio)
+- bot service (build from .)
 
-  outline:
-    image: outlinewiki/outline:latest
-    env_file: .env.outline
-    ports: ["3000:3000"]
-    depends_on: [postgres, redis, minio]
+setup.sh script:
+- docker-compose up -d
+- Apply SurrealDB schema
+- Create initial Outline collections
+- Start cloudflared tunnel
+- Print all URLs
 
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: outline
-      POSTGRES_USER: outline
-      POSTGRES_PASSWORD: outline_pass
-    volumes: ["./data/postgres:/var/lib/postgresql/data"]
-
-  redis:
-    image: redis:7
-
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
-    ports: ["9000:9000", "9001:9001"]
-    volumes: ["./data/minio:/data"]
-
-  bot:
-    build: .
-    env_file: .env
-    volumes: ["./storage:/app/storage"]
-    depends_on: [surrealdb, outline]
-    restart: unless-stopped
-
-Also create:
-- Dockerfile for the bot service
-- .env.outline template with all required Outline env vars
-- setup.sh script that: starts docker-compose, applies SurrealDB schema, creates initial Outline collections, starts cloudflared tunnel
-- README.md with full setup instructions in Vietnamese
+README.md: full setup instructions in Vietnamese, how to add first user, how to use commands, backup guide.
 ```
 
 ***
 
-## Cách dùng
+## Cách dùng sau khi chỉnh
 
-1. **Paste Master Prompt** → để Antigravity scaffold toàn bộ cấu trúc thư mục
-2. **Paste lần lượt Sub-Prompt 1→7**, đợi từng bước hoàn tất
-3. Sau mỗi sub-prompt, kiểm tra và prompt tiếp: `"Fix any errors in the code above, then run tests"`
-4. Cuối cùng: `"Run the project with docker-compose and confirm all services start correctly"`
+1. **Paste Master Prompt** (giữ nguyên của bạn)
+2. **Paste lần lượt 7 Sub-Prompt trên**
+3. **Sau mỗi Sub, dùng lệnh fix**:  
+   `"Refactor the code above to be fully async, add proper structlog, Pydantic models, error handling and audit log where missing."`
