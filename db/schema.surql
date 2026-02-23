@@ -1,6 +1,6 @@
 -- ============================================================
 -- MedDevice DMS - SurrealDB Schema Definition
--- Version: 1.0.1
+-- Version: 1.0.3
 -- ============================================================
 
 -- Vietnamese text analyzer
@@ -59,7 +59,7 @@ DEFINE FIELD sub_type     ON document TYPE option<string>;
 DEFINE FIELD file_path    ON document TYPE option<string>;
 DEFINE FIELD file_url     ON document TYPE option<string>;
 DEFINE FIELD content_text ON document TYPE option<string>;
-DEFINE FIELD metadata     ON document FLEXIBLE TYPE object;
+DEFINE FIELD metadata     ON document TYPE object FLEXIBLE;
 DEFINE FIELD uploaded_at  ON document TYPE datetime DEFAULT time::now();
 
 -- ============================================================
@@ -75,15 +75,15 @@ DEFINE FIELD table_name       ON audit_log TYPE string;
 DEFINE FIELD record_id        ON audit_log TYPE string;
 DEFINE FIELD telegram_user_id ON audit_log TYPE option<string>;
 DEFINE FIELD timestamp        ON audit_log TYPE datetime DEFAULT time::now();
-DEFINE FIELD changes          ON audit_log FLEXIBLE TYPE object;
+DEFINE FIELD changes          ON audit_log TYPE object FLEXIBLE;
 
 -- ============================================================
 -- INDEXES
 -- ============================================================
 
--- Full-text search indexes (Vietnamese analyzer)
-DEFINE INDEX idx_content  ON document FIELDS content_text SEARCH ANALYZER vn_analyzer BM25;
-DEFINE INDEX idx_metadata ON document FIELDS metadata.title SEARCH ANALYZER vn_analyzer BM25;
+-- Content indexes
+DEFINE INDEX idx_content  ON document FIELDS content_text;
+DEFINE INDEX idx_metadata ON document FIELDS metadata;
 
 -- Device lookup indexes
 DEFINE INDEX idx_device_name  ON device FIELDS name;

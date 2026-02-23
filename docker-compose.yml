@@ -1,16 +1,14 @@
-version: "3.9"
-
 services:
   # ============================================================
   # SurrealDB
   # ============================================================
   surrealdb:
     image: surrealdb/surrealdb:latest
-    command: start --log info --user root --pass root file://data/database.db
+    command: start --log info --user root --pass root memory
     ports:
       - "8000:8000"
     volumes:
-      - ./data/surreal:/data
+      - surreal_data:/data
     restart: unless-stopped
 
   # ============================================================
@@ -23,7 +21,7 @@ services:
       POSTGRES_USER: outline
       POSTGRES_PASSWORD: outline_pass
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
   redis:
@@ -37,7 +35,7 @@ services:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - ./data/minio:/data
+      - minio_data:/data
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -69,3 +67,8 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
+
+volumes:
+  surreal_data:
+  postgres_data:
+  minio_data:

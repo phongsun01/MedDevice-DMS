@@ -1,13 +1,30 @@
 @echo off
+@chcp 65001 > nul
+:: Always run from the directory containing this script
+cd /d "%~dp0"
 setlocal enabledelayedexpansion
 
 echo 🏥 MedDevice DMS - Windows Setup
 echo ================================
 
+:: 0. Check if Docker is running
+echo.
+echo 🔍 Checking Docker daemon...
+docker info >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ❌ Error: Docker is not running or permissions are insufficient.
+    echo Please:
+    echo 1. Start Docker Desktop and wait for it to be ready.
+    echo 2. Run this script as Administrator.
+    pause
+    exit /b 1
+)
+
 :: 1. Start all services
 echo.
 echo 📦 Starting Docker services...
-docker-compose up -d
+set DOCKER_BUILDKIT=0
+docker compose up -d
 
 :: 2. Wait for SurrealDB
 echo.
@@ -18,10 +35,11 @@ timeout /t 10 /nobreak > nul
 echo.
 echo 📋 Applying SurrealDB schema...
 :: Get container ID for surrealdb
-for /f "tokens=*" %%i in ('docker-compose ps -q surrealdb') do set SURREAL_ID=%%i
+for /f "tokens=*" %%i in ('docker compose ps -q surrealdb') do set SURREAL_ID=%%i
 
 if "!SURREAL_ID!"=="" (
     echo ❌ Error: SurrealDB container not found.
+    pause
     exit /b 1
 )
 
@@ -32,10 +50,12 @@ echo ✅ Schema applied!
 :: 4. Create MinIO bucket for Outline
 echo.
 echo 🪣 Creating MinIO bucket (outline)...
-for /f "tokens=*" %%i in ('docker-compose ps -q minio') do set MINIO_ID=%%i
+for /f "tokens=*" %%i in ('docker compose ps -q minio') do set MINIO_ID=%%i
 
-docker exec !MINIO_ID! mc alias set local http://localhost:9000 minioadmin minioadmin
-docker exec !MINIO_ID! mc mb local/outline
+if not "!MINIO_ID!"=="" (
+    docker exec !MINIO_ID! mc alias set local http://localhost:9000 minioadmin minioadmin
+    docker exec !MINIO_ID! mc mb local/outline
+)
 
 :: 5. Print URLs
 echo.

@@ -10,7 +10,7 @@ echo "========================"
 # 1. Start all services
 echo ""
 echo "📦 Starting Docker services..."
-docker-compose up -d
+docker compose up -d
 
 # 2. Wait for SurrealDB
 echo ""
@@ -20,7 +20,7 @@ sleep 5
 # 3. Apply schema
 echo ""
 echo "📋 Applying SurrealDB schema..."
-docker exec -i $(docker-compose ps -q surrealdb) \
+docker exec -i $(docker compose ps -q surrealdb) \
   /surreal sql --conn ws://localhost:8000 \
   --user root --pass root \
   --ns meddevice --db dms < db/schema.surql
@@ -30,9 +30,9 @@ echo "✅ Schema applied!"
 # 4. Create MinIO bucket for Outline
 echo ""
 echo "🪣 Creating MinIO bucket (outline)..."
-docker exec $(docker-compose ps -q minio) \
+docker exec $(docker compose ps -q minio) \
   mc alias set local http://localhost:9000 minioadmin minioadmin 2>/dev/null || true
-docker exec $(docker-compose ps -q minio) \
+docker exec $(docker compose ps -q minio) \
   mc mb local/outline 2>/dev/null || true
 
 # 5. Start cloudflared tunnel (optional)

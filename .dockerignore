@@ -1,0 +1,9 @@
+# Ignore everything
+*
+
+# Allow only bot files
+!bot/
+!agents/
+!main.py
+!config.py
+!requirements.txt

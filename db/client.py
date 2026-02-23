@@ -3,6 +3,7 @@ MedDevice DMS - SurrealDB Async Client (Singleton)
 """
 import asyncio
 from pathlib import Path
+from typing import Optional
 
 import structlog
 from surrealdb import AsyncSurreal
@@ -15,7 +16,7 @@ log = structlog.get_logger(__name__)
 # Singleton client
 # ---------------------------------------------------------------------------
 
-_client: AsyncSurreal | None = None
+_client: Optional[AsyncSurreal] = None
 _lock = asyncio.Lock()
 _MAX_RETRIES = 3
 _RETRY_DELAY = 2  # seconds
@@ -65,7 +66,7 @@ async def disconnect() -> None:
 # Query helpers
 # ---------------------------------------------------------------------------
 
-async def query(surql: str, params: dict | None = None) -> list:
+async def query(surql: str, params: Optional[dict] = None) -> list:
     """Execute a raw SurrealQL query with auto-reconnect."""
     client = await _get_client()
     try:
@@ -110,8 +111,8 @@ async def create_audit_log(
     action: str,
     table_name: str,
     record_id: str,
-    telegram_user_id: str | None = None,
-    changes: dict | None = None,
+    telegram_user_id: Optional[str] = None,
+    changes: Optional[dict] = None,
 ) -> dict:
     """Write an immutable audit log entry."""
     entry = {
@@ -130,7 +131,7 @@ async def create_audit_log(
 # Schema loader
 # ---------------------------------------------------------------------------
 
-async def apply_schema(schema_path: str | None = None) -> None:
+async def apply_schema(schema_path: Optional[str] = None) -> None:
     """Load and execute the schema.surql file against the database."""
     path = Path(schema_path or "db/schema.surql")
     if not path.exists():

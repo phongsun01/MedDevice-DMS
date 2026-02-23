@@ -1,6 +1,6 @@
 """
 MedDevice DMS - Entry Point
-Telegram Bot webhook server with SurrealDB connection.
+Runs in polling mode when WEBHOOK_URL is not configured.
 """
 import asyncio
 import logging
@@ -41,30 +41,45 @@ def setup_logging():
     )
 
 
+def _is_webhook_configured() -> bool:
+    """Return True only when a real webhook URL is set."""
+    url = settings.WEBHOOK_URL or ""
+    return url.startswith("https://") and "your-tunnel" not in url
+
+
 # ---------------------------------------------------------------------------
-# Application lifecycle
+# Polling mode (development)
 # ---------------------------------------------------------------------------
 
-async def on_startup(app: web.Application):
-    """Connect to SurrealDB and apply schema on startup."""
+async def run_polling():
     log = structlog.get_logger("startup")
+    log.info("bot.mode", mode="polling")
+
+    bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+    dp = Dispatcher()
+
+    dp.message.middleware(AuthMiddleware())
+    dp.callback_query.middleware(AuthMiddleware())
+
+    dp.include_router(browse_router)
+    dp.include_router(search_router)
+    dp.include_router(files_router)
+    dp.include_router(compare_router)
+    dp.include_router(wiki_router)
+    dp.include_router(add_router)
+
     await db_client.connect()
     await db_client.apply_schema()
 
-    bot: Bot = app["bot"]
-    webhook_url = f"{settings.WEBHOOK_URL}/webhook"
-    await bot.set_webhook(webhook_url)
-    log.info("webhook.set", url=webhook_url)
+    # Remove any old webhook before polling
+    await bot.delete_webhook(drop_pending_updates=True)
+    log.info("bot.polling.started")
+    await dp.start_polling(bot)
 
 
-async def on_shutdown(app: web.Application):
-    """Cleanup on shutdown."""
-    log = structlog.get_logger("shutdown")
-    bot: Bot = app["bot"]
-    await bot.delete_webhook()
-    await db_client.disconnect()
-    log.info("shutdown.complete")
-
+# ---------------------------------------------------------------------------
+# Webhook mode (production)
+# ---------------------------------------------------------------------------
 
 def create_app() -> web.Application:
     """Build the aiohttp application with aiogram webhook."""
@@ -73,11 +88,9 @@ def create_app() -> web.Application:
     bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
     dp = Dispatcher()
 
-    # Register middleware
     dp.message.middleware(AuthMiddleware())
     dp.callback_query.middleware(AuthMiddleware())
 
-    # Register routers
     dp.include_router(browse_router)
     dp.include_router(search_router)
     dp.include_router(files_router)
@@ -85,13 +98,25 @@ def create_app() -> web.Application:
     dp.include_router(wiki_router)
     dp.include_router(add_router)
 
-    # aiohttp app
+    async def on_startup(app: web.Application):
+        log = structlog.get_logger("startup")
+        await db_client.connect()
+        await db_client.apply_schema()
+        webhook_url = f"{settings.WEBHOOK_URL}/webhook"
+        await bot.set_webhook(webhook_url)
+        log.info("webhook.set", url=webhook_url)
+
+    async def on_shutdown(app: web.Application):
+        log = structlog.get_logger("shutdown")
+        await bot.delete_webhook()
+        await db_client.disconnect()
+        log.info("shutdown.complete")
+
     app = web.Application()
     app["bot"] = bot
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
 
-    # Webhook handler
     webhook_handler = SimpleRequestHandler(dispatcher=dp, bot=bot)
     webhook_handler.register(app, path="/webhook")
     setup_application(app, dp, bot=bot)
@@ -99,6 +124,19 @@ def create_app() -> web.Application:
     return app
 
 
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
 if __name__ == "__main__":
-    app = create_app()
-    web.run_app(app, host="0.0.0.0", port=8080)
+    setup_logging()
+    if _is_webhook_configured():
+        app = create_app()
+        web.run_app(app, host="0.0.0.0", port=8080)
+    else:
+        structlog.get_logger("startup").info(
+            "webhook.not_configured",
+            msg="WEBHOOK_URL not set – falling back to polling mode"
+        )
+        asyncio.run(run_polling())
+
