@@ -102,11 +102,21 @@ async def _classify_with_gemini(filename: str) -> dict:
         f"Classify this medical device document filename into one of these types: "
         f"technical, config, price, contract, comparison, link, other. "
         f"Also guess the sub_type if applicable. Filename: '{filename}'. "
-        f"Return JSON: {{\"doc_type\": \"...\", \"sub_type\": \"...\", \"confidence\": 0.0-1.0}}"
+        f"Return ONLY JSON: {{\"doc_type\": \"...\", \"sub_type\": \"...\", \"confidence\": 0.0-1.0}}"
     )
-    response = await model.generate_content_async(prompt)
-    import json
-    return json.loads(response.text.strip().strip("```json").strip("```"))
+    try:
+        response = await model.generate_content_async(prompt)
+        text = response.text.strip()
+        # Clean markdown if present
+        if "```" in text:
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        import json
+        return json.loads(text.strip())
+    except Exception as exc:
+        log.warning("classify.gemini_error", error=str(exc))
+        return {"doc_type": "other", "sub_type": None, "confidence": 0.1}
 
 
 # ---------------------------------------------------------------------------

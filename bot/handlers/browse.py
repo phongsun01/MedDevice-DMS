@@ -36,7 +36,7 @@ async def menu_home(callback: CallbackQuery):
 @router.message(Command("list"))
 async def browse_categories(event: Message | CallbackQuery):
     results = await db.query("SELECT * FROM category ORDER BY name")
-    cats = results[0] if results and results[0] else []
+    cats = results if results else []
     kb = items_keyboard(cats, "cat")
     text = "📁 <b>Chọn danh mục</b>:"
 
@@ -49,35 +49,41 @@ async def browse_categories(event: Message | CallbackQuery):
 
 @router.callback_query(F.data.startswith("cat:"))
 async def browse_groups(callback: CallbackQuery):
-    cat_id = callback.data.split(":", 1)[1]
+    cat_record_id = callback.data.split(":", 1)[1]
+    # Rebuild full SurrealDB record ID for querying
+    full_cat_id = f"category:{cat_record_id}"
     results = await db.query(
         "SELECT * FROM device_group WHERE category = $cat ORDER BY name",
-        {"cat": cat_id},
+        {"cat": full_cat_id},
     )
-    groups = results[0] if results and results[0] else []
+    groups = results if results else []
     kb = items_keyboard(groups, "grp")
-    await callback.message.edit_text("📂 <b>Chọn nhóm</b>:", reply_markup=kb, parse_mode="HTML")
+    text = f"📂 <b>Nhóm</b> ({len(groups)} nhóm):"
+    await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
     await callback.answer()
 
 
 @router.callback_query(F.data.startswith("grp:"))
 async def browse_devices(callback: CallbackQuery):
-    grp_id = callback.data.split(":", 1)[1]
+    grp_record_id = callback.data.split(":", 1)[1]
+    full_grp_id = f"device_group:{grp_record_id}"
     results = await db.query(
         "SELECT * FROM device WHERE device_group = $grp ORDER BY name",
-        {"grp": grp_id},
+        {"grp": full_grp_id},
     )
-    devices = results[0] if results and results[0] else []
+    devices = results if results else []
     kb = items_keyboard(devices, "dev")
-    await callback.message.edit_text("📋 <b>Chọn thiết bị</b>:", reply_markup=kb, parse_mode="HTML")
+    text = f"📋 <b>Thiết bị</b> ({len(devices)} máy):"
+    await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
     await callback.answer()
 
 
 @router.callback_query(F.data.startswith("dev:"))
 async def device_detail(callback: CallbackQuery):
-    dev_id = callback.data.split(":", 1)[1]
+    dev_record_id = callback.data.split(":", 1)[1]
+    full_dev_id = f"device:{dev_record_id}"
     from agents.search_agent import get_device_profile
-    profile = await get_device_profile(dev_id)
+    profile = await get_device_profile(full_dev_id)
 
     if not profile:
         await callback.answer("Không tìm thấy thiết bị", show_alert=True)

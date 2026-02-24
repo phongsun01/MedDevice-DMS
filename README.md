@@ -6,145 +6,86 @@ MedDevice DMS là giải pháp quản lý hồ sơ kỹ thuật, thông số và
 
 ## 🌟 Tính năng chính
 
-- **Cấu trúc phân cấp**: Quản lý theo Category > Group > Device với các nhóm tài liệu chuẩn hóa.
-- **Tìm kiếm AI**: Hỗ trợ tìm kiếm toàn văn (full-text) và ngữ nghĩa trong nội dung file PDF/Word.
-- **So sánh tự động**: Tự động trích xuất và so sánh thông số kỹ thuật giữa các thiết bị.
-- **Giao diện đa kênh**: 
-  - **Telegram Bot**: Nhận file, tra cứu, tìm kiếm và điều khiển hệ thống từ xa.
-  - **Wiki (Outline)**: Trang tra cứu tổng quát, tự động cập nhật từ cơ sở dữ liệu.
-- **Lưu trữ bảo mật**: Hỗ trợ lưu trữ local, Google Drive hoặc S3.
-- **Audit Log**: Ghi lại toàn bộ thao tác trên hệ thống (bắt buộc cho phần mềm y tế).
+- **Cấu trúc phân cấp**: Category > Group > Device với tài liệu được phân loại tự động.
+- **Tìm kiếm AI**: Full-text search trong PDF, Word & Excel (SurrealDB + Gemini).
+- **So sánh tự động**: Trích xuất và so sánh thông số kỹ thuật giữa các thiết bị.
+- **Telegram Bot**: Tra cứu, tải file, thêm thiết bị từ xa qua chat.
+- **Wiki (Outline)**: Trang Wiki tự động cập nhật từ cơ sở dữ liệu.
+- **Bulk Import**: Nạp hàng loạt từ thư mục local bằng `import_local.py`.
+- **Audit Log**: Ghi nhật ký toàn bộ thao tác (bắt buộc cho phần mềm y tế).
 
 ## 🛠 Công nghệ sử dụng
 
 | Thành phần | Công nghệ |
 |---|---|
-| Database | [SurrealDB](https://surrealdb.com/) (Multi-model graph database) |
+| Database | SurrealDB 3.0.0 |
 | AI/LLM | Google Gemini 1.5 |
-| Bot | aiogram 3.x + FSM |
+| Bot | aiogram 3.x |
 | Wiki | Outline.dev (self-hosted) |
-| PDF | PyMuPDF |
-| Excel | openpyxl |
 | Logging | structlog |
-| Config | Pydantic Settings |
 | Deploy | Docker Compose |
 
 ## 📂 Cấu trúc thư mục
 
 ```
 meddevice-dms/
-├── main.py              # Entry point (aiohttp webhook)
-├── config.py            # Pydantic settings (.env loader)
-├── requirements.txt     # Python dependencies
-├── Dockerfile
-├── docker-compose.yml
-├── setup.sh             # One-click setup script
+├── main.py              # Entry point Bot
+├── import_local.py      # Nạp dữ liệu hàng loạt
+├── config.py            # Cấu hình hệ thống
+├── setup.bat            # Cài đặt Windows (Admin)
+├── QUICKSTART.md        # Hướng dẫn 5 bước
 ├── db/
-│   ├── schema.surql     # SurrealDB schema (5 tables + indexes)
-│   └── client.py        # AsyncSurreal singleton + audit log
-├── agents/
-│   ├── parse_agent.py   # PDF extraction + classification
-│   ├── search_agent.py  # Full-text search
-│   ├── compare_agent.py # Device comparison + XLSX
-│   └── wiki_agent.py    # Outline.dev integration
-├── bot/
-│   ├── states.py        # FSM StatesGroup definitions
-│   ├── keyboards.py     # Reusable inline keyboards
-│   ├── middleware.py     # Auth middleware
-│   └── handlers/
-│       ├── browse.py    # /start, /list
-│       ├── search.py    # /search
-│       ├── files.py     # File upload, /get, /docs
-│       ├── compare.py   # /compare (FSM)
-│       ├── wiki.py      # /wiki
-│       └── add.py       # /add (FSM)
-├── storage/files/       # Organized file storage
-└── docs/                # PRD, Vibe Prompts, Workflow
+│   ├── schema.surql     # Database schema
+│   └── client.py        # Database client
+├── agents/              # AI agents xử lý
+├── bot/                 # Telegram handlers
+├── storage/files/       # Kho hồ sơ cục bộ
+└── docs/                # PRD, VIBE_PROMPTS, ANTIGRAVITY_AGENT
 ```
 
-## 🚀 Cài đặt
+## 🚀 Cài đặt (Windows)
 
 ### Yêu cầu
-- Docker & Docker Compose
-- Python 3.12+ (nếu chạy local)
-- Cloudflared hoặc ngrok (cho Telegram webhook)
+- Docker Desktop
+- Python 3.12+
 
-### Bước 1: Clone & cấu hình
-
-```bash
-git clone https://github.com/phongsun01/MedDevice-DMS
-cd MedDevice-DMS
+### Bước 1: Chuẩn bị
+```powershell
 cp .env.example .env
-# Chỉnh sửa .env với các thông tin: BOT_TOKEN, GEMINI_API_KEY, etc.
+# Điền: TELEGRAM_BOT_TOKEN, GEMINI_API_KEY
 ```
 
-### Bước 2: Chạy setup
-
-```bash
-chmod +x setup.sh
-./setup.sh
+### Bước 2: Chạy Setup
+```powershell
+.\setup.bat   # Run as Administrator
 ```
 
-Hoặc chạy thủ công:
-
-```bash
-docker-compose up -d
-# Đợi SurrealDB khởi động, sau đó apply schema:
-docker exec -i $(docker compose ps -q surrealdb) \
-  /surreal sql --user root --pass root \
-  --ns meddevice --db dms --endpoint http://localhost:8000 < db/schema.surql
+### Bước 3: Wiki & Nạp dữ liệu
+1. Truy cập `http://localhost:3000` → tạo Workspace.
+2. **Settings > API Tokens** → tạo token → dán vào `OUTLINE_API_TOKEN` trong `.env`.
+3. Nạp dữ liệu từ thư mục:
+```powershell
+python import_local.py
 ```
 
-### Bước 3: Thiết lập Webhook
-
-```bash
-# Dùng cloudflared
-cloudflared tunnel --url http://localhost:8080
-
-# Hoặc ngrok
-ngrok http 8080
+### Bước 4: Chạy Bot
+```powershell
+python main.py
 ```
-
-Cập nhật `WEBHOOK_URL` trong `.env` với URL tunnel.
 
 ## 🤖 Lệnh Telegram Bot
 
 | Lệnh | Mô tả |
 |---|---|
 | `/start` | Menu chính |
+| `/list` | Duyệt Category → Group → Device |
 | `/search <từ khóa>` | Tìm kiếm toàn bộ tài liệu |
-| `/list` | Duyệt cây Category → Group → Device |
-| `/docs <thiết bị>` | Xem hồ sơ tài liệu của thiết bị |
-| `/compare <A> <B>` | So sánh 2 thiết bị |
-| `/get <doc_id>` | Tải file tài liệu |
-| `/add` | Thêm thiết bị mới (hội thoại từng bước) |
-| `/wiki` | Mở Wiki Outline |
-| **Gửi file** | Upload tài liệu cho thiết bị (kèm caption) |
+| `/add` | Thêm thiết bị mới (wizard) |
+| `/wiki` | Mở link Outline Wiki |
 
-### Upload file
+## 📋 Changelog
 
-Gửi file kèm caption theo format:
-```
-type|tên_thiết_bị|sub_type
-```
-Ví dụ: `technical|Máy X-quang CR Alpha|EN`
-
-## 💾 Backup
-
-```bash
-# Backup SurrealDB
-docker exec $(docker-compose ps -q surrealdb) \
-  /surreal export --conn ws://localhost:8000 --user root --pass root \
-  --ns meddevice --db dms > backup_$(date +%Y%m%d).surql
-
-# Backup files
-tar -czf storage_backup_$(date +%Y%m%d).tar.gz storage/
-```
-
-## 📋 Version
-
-- **v1.1.1** — Fix: Updated Outline Wiki `SECRET_KEY` requirements and fixed SurrealDB v3 schema application command in `setup.bat`.
-- **v1.1.0** — Release: Bot confirmed running in polling mode. Fixed SurrealDB v3 incompatibilities (named volumes, schema syntax). Fixed Box Drive Docker BuildKit issue. Added auto polling/webhook fallback.
-- **v1.0.3** — Docker fix: Added daemon check and removed obsolete version tag.
-- **v1.0.2** — Docker fix: Switched to `docker compose` for better compatibility and fixed Windows encoding.
-- **v1.0.1** — Windows release: Added `setup.bat`, updated credentials and audit flow.
+- **v1.2.0** — Fix: Sửa lỗi RecordID format trong callback của Telegram Bot, các handler `/list` và `/search` hoạt động đúng. Đồng bộ hóa toàn bộ code xử lý kết quả SurrealDB (flat list). Thêm QUICKSTART.md, import_local.py, docs/ANTIGRAVITY_AGENT.md.
+- **v1.1.1** — Security: Xóa file .env khỏi Git history. Fix Outline SECRET_KEY & SurrealDB v3 schema command trong setup.bat.
+- **v1.1.0** — Release: Bot polling mode, sửa Docker volume error trên Windows.
+- **v1.0.1** — Windows release: Thêm setup.bat.

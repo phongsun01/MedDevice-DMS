@@ -199,7 +199,7 @@ async def generate_index_page(category_id: str | None = None) -> None:
                 FROM device ORDER BY device_group.category.name, device_group.name, name"""
         results = await db.query(surql)
 
-    devices = results[0] if results and results[0] else []
+    devices = results if results else []
 
     # Group by category → device_group
     tree: dict[str, dict[str, list]] = {}

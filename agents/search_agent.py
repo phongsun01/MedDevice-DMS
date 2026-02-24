@@ -47,7 +47,7 @@ async def search_documents(query: str, filters: dict | None = None) -> list[dict
 
     try:
         results = await db.query(surql, params)
-        rows = results[0] if results else []
+        rows = results if results else []
         log.info("search.documents", query=query[:50], count=len(rows))
         return rows
     except Exception as exc:
@@ -72,7 +72,7 @@ async def search_devices(query: str) -> list[dict]:
     """
     try:
         results = await db.query(surql, {"q": query})
-        rows = results[0] if results else []
+        rows = results if results else []
         log.info("search.devices", query=query, count=len(rows))
         return rows
     except Exception as exc:
@@ -121,16 +121,16 @@ async def get_device_profile(device_id: str) -> dict:
         {"id": device_id},
     )
 
-    if not dev_result or not dev_result[0]:
+    if not dev_result or not dev_result:
         return {}
 
-    device = dev_result[0][0] if isinstance(dev_result[0], list) else dev_result[0]
+    device = dev_result[0] if dev_result else {}
 
     docs_result = await db.query(
         "SELECT * FROM document WHERE device = $id ORDER BY doc_type, uploaded_at DESC",
         {"id": device_id},
     )
-    docs = docs_result[0] if docs_result and docs_result[0] else []
+    docs = docs_result if docs_result else []
 
     # Group by doc_type
     grouped: dict[str, list] = {}

@@ -6,6 +6,14 @@ from math import ceil
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
+def _serialize_id(record_id) -> str:
+    """Convert SurrealDB RecordID to a string safe for callback_data."""
+    # RecordID from surrealdb-py: has .table_name and .record_id attributes
+    if hasattr(record_id, 'record_id'):
+        return str(record_id.record_id)
+    return str(record_id)
+
+
 def main_menu_keyboard() -> InlineKeyboardMarkup:
     """Main bot menu."""
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -38,9 +46,11 @@ def items_keyboard(
 
     buttons = []
     for item in page_items:
+        raw_id = item.get(id_field, '')
+        item_id = _serialize_id(raw_id)
         buttons.append([InlineKeyboardButton(
             text=str(item.get(label_field, "?")),
-            callback_data=f"{callback_prefix}:{item.get(id_field, '')}",
+            callback_data=f"{callback_prefix}:{item_id}",
         )])
 
     # Pagination row

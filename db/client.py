@@ -84,16 +84,23 @@ async def create(table: str, data: dict) -> dict:
     """Create a record in the given table."""
     client = await _get_client()
     result = await client.create(table, data)
-    log.info("surrealdb.created", table=table, id=result.get("id"))
-    return result
+    # Handle list return or string ID return
+    if isinstance(result, list) and result:
+        result = result[0]
+    
+    rec_id = result.get("id") if isinstance(result, dict) else str(result)
+    log.info("surrealdb.created", table=table, id=rec_id)
+    return result if isinstance(result, dict) else {"id": result}
 
 
 async def update(record_id: str, data: dict) -> dict:
     """Update an existing record by its full ID (e.g. 'device:abc123')."""
     client = await _get_client()
     result = await client.merge(record_id, data)
+    if isinstance(result, list) and result:
+        result = result[0]
     log.info("surrealdb.updated", record_id=record_id)
-    return result
+    return result if isinstance(result, dict) else {"id": result}
 
 
 async def delete(record_id: str) -> None:

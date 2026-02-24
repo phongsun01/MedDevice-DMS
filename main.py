@@ -21,6 +21,20 @@ from bot.handlers.files import router as files_router
 from bot.handlers.compare import router as compare_router
 from bot.handlers.wiki import router as wiki_router
 from bot.handlers.add import router as add_router
+from aiogram.types import BotCommand
+
+async def set_commands(bot: Bot):
+    commands = [
+        BotCommand(command="start", description="Menu chính"),
+        BotCommand(command="search", description="Tìm kiếm thiết bị"),
+        BotCommand(command="list", description="Duyệt danh mục"),
+        BotCommand(command="compare", description="So sánh thiết bị"),
+        BotCommand(command="docs", description="Xem tài liệu thiết bị"),
+        BotCommand(command="wiki", description="Mở Outline Wiki"),
+        BotCommand(command="add", description="Thêm thiết bị mới"),
+    ]
+    await bot.set_my_commands(commands)
+    structlog.get_logger("bot").info("bot.commands.set")
 
 
 # ---------------------------------------------------------------------------
@@ -70,6 +84,7 @@ async def run_polling():
 
     await db_client.connect()
     await db_client.apply_schema()
+    await set_commands(bot)
 
     # Remove any old webhook before polling
     await bot.delete_webhook(drop_pending_updates=True)
@@ -102,6 +117,7 @@ def create_app() -> web.Application:
         log = structlog.get_logger("startup")
         await db_client.connect()
         await db_client.apply_schema()
+        await set_commands(bot)
         webhook_url = f"{settings.WEBHOOK_URL}/webhook"
         await bot.set_webhook(webhook_url)
         log.info("webhook.set", url=webhook_url)
