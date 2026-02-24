@@ -41,7 +41,6 @@ async def search_documents(query: str, filters: dict | None = None) -> list[dict
             device.device_group.category.name AS category_name
         FROM document
         WHERE {where_sql}
-        ORDER BY search::score(1) DESC
         LIMIT 10;
     """
 

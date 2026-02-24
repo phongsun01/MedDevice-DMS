@@ -96,7 +96,7 @@ async def _classify_with_gemini(filename: str) -> dict:
     import google.generativeai as genai
 
     genai.configure(api_key=settings.GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
 
     prompt = (
         f"Classify this medical device document filename into one of these types: "
