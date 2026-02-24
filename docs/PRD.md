@@ -1,305 +1,261 @@
-# PRD – Hệ thống Quản lý Hồ sơ Thiết bị Y tế (MedDevice DMS)
+# PRD v2.0 — MedDevice DMS (Antigravity-First Architecture)
 
-***
+> **Phiên bản:** 2.0 | **Cập nhật:** 2026-02-24  
+> **Tầm nhìn:** Antigravity IDE là trung tâm quản lý tài liệu. Bot/Wiki là kênh phụ.
 
-## 1. Overview
+---
 
-**Tên sản phẩm:** MedDevice DMS
-**Mục tiêu:** Hệ thống quản lý toàn bộ hồ sơ, tài liệu thiết bị y tế theo cấu trúc phân cấp, hỗ trợ tìm kiếm AI, so sánh tự động, wiki tổng quát, giao tiếp từ xa qua Telegram.
-**Nền tảng:** Antigravity IDE (agents/runtime) + SurrealDB (database) + Telegram Bot (remote UI) + Foam/Dendron (wiki) + File Storage (local hoặc Google Drive/S3).
+## 1. Tầm nhìn sản phẩm
 
-***
+### 1.1 Vấn đề cần giải quyết
+Tổ chức y tế lưu trữ hàng trăm tài liệu thiết bị trong thư mục tùy tiện, không có cấu trúc, không thể tìm kiếm thông minh. Tra cứu thủ công, so sánh thiết bị tốn nhiều thời gian.
 
-## 2. Yêu cầu nghiệp vụ
+### 1.2 Giải pháp
+**MedDevice DMS** biến thư mục file hỗn độn thành kho tri thức có cấu trúc, tìm kiếm được bằng ngôn ngữ tự nhiên — thông qua 2 lớp:
 
-### 2.1 Cấu trúc phân cấp dữ liệu
-```
-Category
-  └── Group
-        └── Device
-              ├── Thông tin chung
-              ├── Tài liệu kỹ thuật
-              ├── Bản cấu hình
-              ├── Đường link liên quan
-              ├── Tài liệu giá
-              ├── Hợp đồng tương tự
-              ├── Bản so sánh
-              └── Tài liệu khác
-```
-Ví dụ: **Category** "Thiết bị chẩn đoán hình ảnh" → **Group** "X-quang" → **Device** "Máy X-quang CR XYZ". SurrealDB hỗ trợ cấu trúc này natively qua graph relations và nested documents. [linode](https://www.linode.com/docs/guides/surrealdb-interdocument-modeling/)
-
-### 2.2 Cấu trúc tài liệu của mỗi Device
-
-| Nhóm tài liệu | Nội dung | Định dạng | Ghi chú |
-|---|---|---|---|
-| **Thông tin chung** | Model, hãng, xuất xứ, năm SX | Fields trực tiếp | Text fields |
-| **Tài liệu kỹ thuật** | Specs, hướng dẫn | PDF | Phân biệt EN/VN |
-| **Bản cấu hình** | Quảng cáo, cơ bản, chào giá, mời thầu, đáp ứng | DOC/XLSX | Nhiều version |
-| **Đường link** | Trang chủ, FDA, CE, chứng chỉ | URL | Metadata type |
-| **Tài liệu giá** | Báo giá, kết quả trúng thầu | DOC/PDF/Link | |
-| **Hợp đồng tương tự** | PDF | PDF | File lớn → chunked |
-| **Bản so sánh** | So sánh vs hãng khác | DOC/XLSX | |
-| **Tài liệu khác** | Phụ kiện, misc | Any | |
-
-***
-
-## 3. SurrealDB Schema Design
-
-SurrealDB cho phép kết hợp SCHEMAFULL và SCHEMALESS linh hoạt cho bài toán này. [dev](https://dev.to/sebastian_wessel/how-to-design-a-surrealdb-schema-and-create-a-basic-client-for-typescript-o6o)
-
-```sql
--- Hierarchy tables
-DEFINE TABLE category SCHEMAFULL;
-DEFINE FIELD name ON category TYPE string;
-DEFINE FIELD description ON category TYPE option<string>;
-
-DEFINE TABLE device_group SCHEMAFULL;
-DEFINE FIELD name ON device_group TYPE string;
-DEFINE FIELD category ON device_group TYPE record<category>;
-
--- Main device table
-DEFINE TABLE device SCHEMAFULL;
-DEFINE FIELD name ON device TYPE string;
-DEFINE FIELD model ON device TYPE string;
-DEFINE FIELD brand ON device TYPE string;
-DEFINE FIELD origin ON device TYPE string;
-DEFINE FIELD group ON device TYPE record<device_group>;
-
--- Documents table (polymorphic)
-DEFINE TABLE document SCHEMAFULL;
-DEFINE FIELD device ON document TYPE record<device>;
-DEFINE FIELD doc_type ON document TYPE string; -- 'technical','config','price',...
-DEFINE FIELD sub_type ON document TYPE option<string>; -- 'VI','EN','quotation',...
-DEFINE FIELD file_path ON document TYPE option<string>;
-DEFINE FIELD file_url ON document TYPE option<string>;
-DEFINE FIELD content_text ON document TYPE option<string>; -- extracted text
-DEFINE FIELD metadata ON document FLEXIBLE TYPE object;
-
--- Full-text search indexes
-DEFINE ANALYZER vn_analyzer TOKENIZERS class, blank
-  FILTERS lowercase, ascii;
-DEFINE INDEX doc_content_idx ON document
-  FIELDS content_text FULLTEXT ANALYZER vn_analyzer BM25 HIGHLIGHTS;
-DEFINE INDEX doc_name_idx ON document
-  FIELDS metadata.title FULLTEXT ANALYZER vn_analyzer BM25 HIGHLIGHTS;
-```
-
-
-***
-
-## 4. Module Requirements
-
-### Module A – Core Data Manager (Antigravity Agent)
-**Nhiệm vụ:** Toàn bộ CRUD cho device, group, category, document.
-
-**Requirements:**
-- A1: Tạo/sửa/xóa Category, Group, Device
-- A2: Upload file → lưu vào local storage/Drive → lưu path vào SurrealDB `document` record
-- A3: Tự động extract text từ PDF bằng PDF-parser/Gemini → lưu vào field `content_text` để search
-- A4: Classify loại tài liệu khi upload (agent nhận diện tên file/nội dung → gán `doc_type`, `sub_type`)
-- A5: Validate file format theo từng nhóm (config chỉ nhận DOC/XLSX, technical chỉ PDF)
-
-**Tasks:**
-- [ ] Setup SurrealDB schema (script migration)
-- [ ] Viết CRUD functions bằng Rust/Python SDK
-- [ ] Tích hợp PDF text extraction (PyMuPDF hoặc Gemini File API)
-- [ ] Agent classify tài liệu tự động (Gemini prompt + rules-based fallback)
-- [ ] File storage abstraction (local FS trước, S3 sau)
-
-***
-
-### Module B – Search Agent (Tìm kiếm tài liệu)
-**Nhiệm vụ:** Tìm kiếm full-text + semantic trong tài liệu thiết bị.
-
-**Requirements:**
-- B1: Tìm theo từ khoá trong toàn bộ nội dung tài liệu (full-text BM25)
-- B2: Tìm theo device name, model, hãng
-- B3: Filter theo: category / group / doc_type / sub_type / brand
-- B4: Trả về kết quả có **highlight** đoạn text match
-- B5: Semantic search (tuỳ chọn Phase 2) dùng vector embeddings
-
-**SurrealQL mẫu:** [surrealdb](https://surrealdb.com/docs/surrealdb/models/full-text-search)
-```sql
-SELECT *, search::highlight('<b>', '</b>', 1)
-  AS highlight
-FROM document
-WHERE content_text @@ 'liều lượng bức xạ'
-  AND device.group.category.name = 'Thiết bị chẩn đoán hình ảnh';
-```
-
-**Tasks:**
-- [ ] Định nghĩa FULLTEXT indexes trên SurrealDB
-- [ ] Search agent nhận input từ Telegram → query SurrealDB → format kết quả
-- [ ] Implement filter pipeline (category → group → device → doc_type)
-- [ ] Format kết quả trả về Telegram (text + file path link)
-
-***
-
-### Module C – Compare Agent (So sánh thiết bị)
-**Nhiệm vụ:** So sánh 2 thiết bị từ tài liệu có sẵn.
-
-**Requirements:**
-- C1: User chọn 2 device → agent extract specs từ tài liệu kỹ thuật
-- C2: Agent tạo bảng so sánh structured (tên spec, giá trị A, giá trị B)
-- C3: Ưu tiên dùng file "Bản so sánh" có sẵn nếu tồn tại
-- C4: Nếu không có file so sánh → Gemini extract từ technical docs
-- C5: Output: Markdown table gửi về Telegram hoặc export XLSX
-
-**Tasks:**
-- [ ] Compare agent: query 2 device records + documents
-- [ ] Gemini prompt: "Extract thông số kỹ thuật từ đoạn text sau thành JSON"
-- [ ] Merge và diff 2 JSON specs → render table
-- [ ] Export XLSX qua openpyxl, gửi file về Telegram
-
-***
-
-### Module D – Telegram Bot (Remote Interface)
-**Nhiệm vụ:** Cầu nối duy nhất giữa user và hệ thống khi không ở máy tính.
-
-**Requirements:**
-- D1: Nhận file upload → trigger Module A (parse & store)
-- D2: Xử lý lệnh tìm kiếm: `/search [từ khoá]`
-- D3: Xử lý lệnh so sánh: `/compare [device A] [device B]`
-- D4: Browse theo cây: `/list categories` → `/list groups [cat]` → `/list devices [group]`
-- D5: Xem danh sách tài liệu: `/docs [device_name]`
-- D6: Tải file: `/get [doc_id]` → bot gửi file về chat
-- D7: Điều khiển Antigravity IDE từ xa: `/run [prompt]` → agent thực thi, gửi ảnh kết quả
-
-**Command map:**
-```
-/start          - Menu chính
-/search <query> - Tìm kiếm toàn bộ
-/list           - Duyệt cây category
-/docs <device>  - Xem hồ sơ thiết bị
-/compare A B    - So sánh 2 thiết bị
-/get <id>       - Tải file
-/add            - Upload tài liệu mới (gửi file kèm)
-/run <prompt>   - Điều khiển IDE từ xa
-/wiki           - Link tới trang wiki
-```
-
-**Tasks:**
-- [ ] Setup python-telegram-bot hoặc aiogram
-- [ ] Webhook server local + ngrok expose
-- [ ] Implement command handlers (mỗi lệnh = 1 handler function)
-- [ ] File download: bot forward file về Telegram chat
-- [ ] Remote IDE control: inject prompt + screenshot (Ricochet/pyautogui) [reddit](https://www.reddit.com/r/google_antigravity/comments/1q31qxa/made_a_tool_to_control_my_ide_from_telegram/)
-
-***
-
-### Module E – Wiki Page
-**Nhiệm vụ:** Trang tổng quát dạng wiki, tự cập nhật từ DB.
-
-**Requirements:**
-- E1: Trang index theo Category → Group → Device (dạng outline/tree)
-- E2: Mỗi device có trang riêng: thông tin chung + danh sách tài liệu dạng link
-- E3: Auto-regenerate khi có thay đổi trong DB
-- E4: Có graph view (như Lark wiki)
-- E5: Search trong wiki
-
-**Lựa chọn tool:** [youtube](https://www.youtube.com/watch?v=P2lcCvt2RYw)
-
-| Option | Ưu | Nhược |
+| Lớp | Công cụ | Người dùng |
 |---|---|---|
-| **Foam (VSCode ext)** | Built-in Antigravity, graph view | Manual tạo file MD |
-| **Obsidian** | Graph đẹp, search tốt | Tách biệt IDE |
-| **MkDocs + Material** | Web public, đẹp | Không có graph |
-| **Outline.dev (self-host)** | Gần giống Lark nhất | Cần Docker |
+| **Quản lý** | Antigravity IDE + CLI | Quản lý hệ thống |
+| **Tra cứu** | Telegram Bot + Outline Wiki | Nhân viên, lãnh đạo |
 
-**Khuyến nghị:** Dùng **Outline.dev** self-hosted (Docker) cho giao diện gần Larksuite nhất, agents tự-generate/update pages qua Outline API khi DB thay đổi.
+---
 
-**Tasks:**
-- [ ] Deploy Outline.dev bằng Docker Compose
-- [ ] Agent generate Markdown pages cho mỗi device khi create/update
-- [ ] POST lên Outline API tự động
-- [ ] Link Outline URL vào Telegram bot response (`/wiki device_name`)
+## 2. Cấu trúc dữ liệu
 
-***
-
-## 5. Use Cases
-
-### UC-01: Thêm thiết bị mới
-1. User gửi `/add` lên Telegram
-2. Bot hỏi: tên device, group, category
-3. User trả lời từng bước (conversation flow)
-4. Agent tạo record trong SurrealDB
-5. Bot xác nhận + tạo wiki page tự động
-
-### UC-02: Upload tài liệu kỹ thuật
-1. User gửi file PDF trực tiếp lên Telegram chat, kèm caption: `ky_thuat|máy X-quang CR|EN`
-2. Bot parse caption → xác định device + doc_type + sub_type
-3. Agent download file → lưu storage → extract text PDF → index SurrealDB
-4. Bot confirm: "✅ Đã lưu tài liệu kỹ thuật (EN) cho máy X-quang CR"
-
-### UC-03: Tìm kiếm thông số
-1. User: `/search liều lượng bức xạ tối đa CR`
-2. Search agent query SurrealDB full-text với BM25
-3. Trả về top 5 kết quả với highlight text + tên device + tên file
-4. User chọn → `/get doc_id` để tải file gốc
-
-### UC-04: So sánh 2 thiết bị
-1. User: `/compare "Máy X-quang CR Alpha" "Máy X-quang CR Beta"`
-2. Agent kiểm tra file so sánh có sẵn → nếu có, dùng file đó
-3. Nếu không có → Gemini extract specs từ technical docs của cả 2
-4. Trả về bảng Markdown trong Telegram + file XLSX đính kèm
-
-### UC-05: Duyệt hồ sơ từ xa
-1. User: `/list` → chọn category "Thiết bị chẩn đoán hình ảnh"
-2. → `/list groups TBCDHA` → chọn "X-quang"
-3. → `/list devices xquang` → chọn device
-4. → `/docs "Máy X-quang CR Alpha"` → xem danh sách 8 nhóm tài liệu + status (có/chưa có)
-
-### UC-06: Xem Wiki
-1. User: `/wiki "Máy X-quang CR Alpha"`
-2. Bot trả link Outline.dev: `http://yourserver/doc/may-xquang-cr-alpha`
-3. User mở trên điện thoại, xem trang đầy đủ
-
-***
-
-## 6. Technical Architecture
-
+### 2.1 Phân cấp
 ```
-[Telegram App (điện thoại)]
-          │  HTTPS
-          ▼
-[Telegram Bot Server - Python]
-          │
-    ┌─────┴──────┐
-    │            │
-    ▼            ▼
-[File Storage]  [Antigravity Agents]
- Local/S3        ├── Parse Agent (PDF→text)
-                 ├── Search Agent
-                 ├── Compare Agent
-                 └── Wiki Agent
-                          │
-                          ▼
-                    [SurrealDB]
-                    (Document+Graph
-                     Full-text index)
-                          │
-                          ▼
-                   [Outline.dev Wiki]
-                   (auto-updated pages)
+Category → Group → Device → Documents
 ```
 
-***
+### 2.2 Cấu trúc thư mục chuẩn (Option A — đã xác nhận)
 
-## 7. Phase Roadmap
+```
+storage/files/
+├── thiet-bi-chan-doan-hinh-anh/       # Category (kebab-case)
+│   ├── ct-scan/                        # Group
+│   │   ├── somatom-go-now/            # Device
+│   │   │   ├── technical/
+│   │   │   │   ├── vi/                # Bản Tiếng Việt
+│   │   │   │   └── en/                # Bản Tiếng Anh
+│   │   │   ├── config/
+│   │   │   │   ├── bidding/           # Mời thầu (IB)
+│   │   │   │   ├── compliance/        # Đáp ứng (Chương V)
+│   │   │   │   ├── quotation/         # Chào giá
+│   │   │   │   ├── advertising/
+│   │   │   │   └── basic/
+│   │   │   ├── price/
+│   │   │   ├── contract/
+│   │   │   ├── comparison/
+│   │   │   └── other/
+│   │   │       └── archive/           # File .doc gốc (khi có PDF tương ứng)
+│   │   └── ct-128-somatom-go-top/
+│   ├── sieu-am/
+│   │   ├── arietta-50/
+│   │   ├── acuson-juniper/
+│   │   └── ...
+│   ├── c-arm/
+│   ├── dsa/
+│   ├── mri/
+│   └── x-quang/
+├── thiet-bi-dieu-tri/
+├── thiet-bi-dung-chung/
+├── thiet-bi-hoi-suc-cap-cuu/
+├── thiet-bi-ksnk/
+├── thiet-bi-phong-mo/
+└── thiet-bi-xet-nghiem/
+```
 
-| Phase | Scope | Mục tiêu |
+### 2.3 Phân nhóm Device đề xuất — "thiet-bi-chan-doan-hinh-anh"
+
+| Group | Device |
+|---|---|
+| `ct-scan` | Somatom Go Now, CT 128 Somatom Go Top, He thong CT dem photon |
+| `sieu-am` | Arietta 50, Sieu am ACUSON Juniper, Sieu am Acuson Maple, Sieu am ACUSON Redwood, Sieu am ACUSON Sequoia Select, Sieu am arietta 750v, Sieu am Resona I9 Exp |
+| `c-arm` | C-Arm Siemens Cios Fit, C-Arm Siemens Cios Select |
+| `dsa` | DSA Azurion 7B20, DSA siemens |
+| `mri` | MRI Siemens 0.55 |
+| `x-quang` | X Quang Examion, X quang FDR 68S |
+
+### 2.4 Naming Convention (BẮT BUỘC)
+
+```
+❌ Thiet bi chan doan hinh anh   (có space)
+❌ thiet_bi_chan_doan_hinh_anh   (snake_case — không nhất quán)
+✅ thiet-bi-chan-doan-hinh-anh   (kebab-case — tiêu chuẩn)
+```
+
+**Quy tắc:**
+- Tất cả tên folder: kebab-case, không dấu, không space
+- Dùng `unidecode` để convert tự động
+- DB lưu cả `display_name` (có dấu, đầy đủ) và `slug` (kebab-case)
+
+### 2.5 Dedup Policy (đã xác nhận)
+
+Khi có cả `.doc` lẫn `.pdf` cùng nội dung:
+- **Giữ cả 2** trong cùng thư mục
+- Trong DB: file PDF có `is_primary=true`, file DOC có `is_primary=false`
+- Trường hợp file ZIP: giải nén → phân loại từng file bên trong → lưu vào `other/archive/` gốc
+
+---
+
+## 3. Module Requirements (v2.0)
+
+### Prerequisite — Normalize (TRƯỚC KHI SCAN)
+
+**P0: Normalize folder** (chạy 1 lần duy nhất trước khi import):
+- `python cli.py normalize --dry-run` → preview kế hoạch đổi tên
+- `python cli.py normalize` → thực hiện rename sang kebab-case
+- `python cli.py merge-dupes` → gộp folder trùng (VD: `Thiet bi...` + `thiet_bi_...`)
+
+**P1: Thêm Group folder** (chạy 1 lần sau normalize):
+- Tạo thư mục group theo bảng 2.3
+- Di chuyển device folder vào đúng group
+
+---
+
+### Module A — File Scanner & Classifier (Antigravity Core)
+
+- **A0:** Normalize folder names (kebab-case) — see Prerequisite
+- **A1:** Quét cây thư mục `storage/files` theo cấu trúc `cat/group/device/type/`
+- **A2:** Đọc nội dung file (PDF → PyMuPDF, DOCX → python-docx, XLSX → openpyxl)
+- **A3:** Phân loại `doc_type`, `sub_type` từ tên file + nội dung (Gemini 2.0 Flash)
+- **A4:** Ghi vào SurrealDB — field `is_primary=true` cho PDF khi có cả hai định dạng
+- **A5:** Tạo/cập nhật trang Wiki trên Outline
+- **A6:** Output report: số file xử lý, lỗi, file không xác định
+
+---
+
+### Module B — CLI Interface
+
+```bash
+python cli.py stats                             # Thống kê tổng quan
+python cli.py normalize [--dry-run]            # Rename folder sang kebab-case
+python cli.py merge-dupes [--dry-run]          # Gộp folder trùng lặp
+python cli.py scan [--dry-run] [--path]        # Quét và import file
+python cli.py search "từ khóa" [--json]        # Tìm kiếm full-text
+python cli.py device "tên"                     # Thông tin 1 thiết bị
+python cli.py missing [--group] [--doc-type]   # Thiết bị thiếu tài liệu
+python cli.py compare "A" "B" [--export xlsx]  # So sánh 2 thiết bị
+python cli.py wiki sync [--device]             # Đẩy lên Outline Wiki
+python cli.py health                           # Kiểm tra kết nối
+python cli.py classify --file <path>           # Phân loại 1 file cụ thể
+```
+
+---
+
+### Module C — Search Engine (giữ nguyên từ v1)
+
+- Full-text BM25 trên `content_text` (SurrealDB native)
+- Filter: category, group, device, doc_type
+- Highlight đoạn text match
+
+---
+
+### Module D — Telegram Bot
+
+- `/list` → Category → Group → Device (3 tầng)
+- `/search`, `/docs`, `/compare`, `/wiki` — giữ nguyên
+- Upload file → tự phân loại và lưu
+
+---
+
+### Module E — Outline Wiki
+
+- Collection theo Category
+- Trang riêng cho mỗi Device (có Group breadcrumb)
+- Auto-update khi DB thay đổi
+
+---
+
+## 4. Use Cases (v2.0)
+
+### UC-00: Normalize thư mục lần đầu (NEW)
+1. Antigravity thực thi: `python cli.py normalize --dry-run`
+2. Đọc output, xác nhận với người dùng
+3. Chạy thật: `python cli.py normalize`
+4. Tạo Group folder theo bảng 2.3
+5. Chạy: `python cli.py scan`
+
+### UC-01: Antigravity phân loại thư mục file cũ
+1. Nói với Antigravity: *"Phân loại thư mục `storage/files` và nạp vào hệ thống"*
+2. Antigravity chạy `python cli.py scan --dry-run` → báo cáo preview
+3. Xác nhận → `python cli.py scan` → `python cli.py wiki sync`
+
+### UC-02: Truy vấn bằng ngôn ngữ tự nhiên
+1. *"Liệt kê thiết bị nhóm CT-Scan chưa có báo giá"*
+2. `python cli.py missing --group "ct-scan" --doc-type price`
+
+### UC-03 → UC-06: Giữ nguyên từ v1 (browse, search, compare, wiki)
+
+---
+
+## 5. Kiến trúc kỹ thuật (v2.0)
+
+```
+┌──────────────── QUẢN LÝ (Antigravity + CLI) ───────────────────┐
+│                                                                  │
+│  Antigravity IDE ──▶ cli.py ──▶ agents/                        │
+│                                  ├── scan_agent   (A0–A6)       │
+│                                  ├── parse_agent  (PDF/DOCX)    │
+│                                  ├── search_agent              │
+│                                  ├── compare_agent             │
+│                                  └── wiki_agent                │
+│                                         │                       │
+│              storage/files/ ────────────┤                       │
+│              (kebab-case, Group folders) │                       │
+│                                    SurrealDB                     │
+└─────────────────────────────────────────┼───────────────────────┘
+                                          │
+┌──────────────── TRA CỨU (Người dùng cuối) ─────────────────────┐
+│  Telegram Bot ◀── handlers/ ◀───────────┤                       │
+│  Outline Wiki ◀── wiki_agent ◀──────────┘                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 6. Tech Stack
+
+| Thành phần | Công nghệ |
+|---|---|
+| Database | SurrealDB 3.0+ |
+| AI/LLM | Google Gemini 2.0 Flash |
+| CLI | Python argparse + rich |
+| Bot | aiogram 3.x |
+| Wiki | Outline.dev (Docker) |
+| PDF | PyMuPDF |
+| Excel | openpyxl |
+| Normalize | unidecode |
+| Logging | structlog |
+
+---
+
+## 7. Roadmap
+
+| Phase | Scope | Trạng thái |
 |---|---|---|
-| **Phase 1** | Schema + CRUD + Telegram basic | Lưu & duyệt hồ sơ qua Telegram  [surrealdb](https://surrealdb.com/docs/surrealdb/models/document) |
-| **Phase 2** | PDF extraction + Full-text search | Tìm kiếm trong tài liệu  [surrealdb](https://surrealdb.com/blog/create-a-search-engine-with-surrealdb-full-text-search) |
-| **Phase 3** | Compare agent + XLSX export | So sánh thiết bị tự động  [theverge](https://www.theverge.com/news/822833/google-antigravity-ide-coding-agent-gemini-3-pro) |
-| **Phase 4** | Outline wiki + auto-generate | Wiki tổng quát  [youtube](https://www.youtube.com/watch?v=P2lcCvt2RYw) |
-| **Phase 5** | Remote IDE control + semantic search | Điều khiển Antigravity từ xa  [reddit](https://www.reddit.com/r/google_antigravity/comments/1qhocbz/presenting_antigravity_remote_work_from_literally/) |
+| **Phase 0** | Normalize folder + merge dupes + thêm Group | 🔲 Tiếp theo |
+| **Phase 1** | DB Schema + Docker + Bot cơ bản | ✅ Hoàn thành |
+| **Phase 2** | CLI (`cli.py`) + Scan Agent nâng cấp | 🔲 Kế tiếp |
+| **Phase 3** | Gemini 2.0 + Phân loại thông minh | 🔲 Phase sau |
+| **Phase 4** | Compare Agent + XLSX export | 🔲 Phase sau |
+| **Phase 5** | Semantic search + RAG | 🔲 Tương lai |
 
-***
+---
 
 ## 8. Rủi ro & Lưu ý
 
-- **File lớn (hợp đồng):** Telegram giới hạn 50MB/file → cần lưu storage, chỉ gửi link qua bot. [reddit](https://www.reddit.com/r/google_antigravity/comments/1q31qxa/made_a_tool_to_control_my_ide_from_telegram/)
-- **PDF tiếng Việt:** Cần cấu hình tokenizer phù hợp (dùng `blank` + `class` filter) trong SurrealDB analyzer. [surrealdb](https://surrealdb.com/docs/surrealdb/models/full-text-search)
-- **Bảo mật:** SurrealDB hỗ trợ row-level permissions → giới hạn ai được xem tài liệu nào. [antigravityide](https://www.antigravityide.app/features)
-- **PC luôn bật:** Toàn bộ hệ thống chạy local → cần PC ổn định + ngrok/Cloudflare Tunnel để expose webhook Telegram. [reddit](https://www.reddit.com/r/google_antigravity/comments/1qhocbz/presenting_antigravity_remote_work_from_literally/)
+- **Folder trùng lặp:** Đang có 12 cặp (`Thiet bi...` + `thiet_bi_...`) — cần merge trước khi scan.
+- **File trùng định dạng:** Giữ cả .doc lẫn .pdf, đánh dấu `is_primary` trong metadata.
+- **File ZIP (`IB Download.zip`):** Cần giải nén thủ công → phân loại → đưa vào đúng thư mục.
+- **Nhiều file IB:** `bid_code` lưu sau (Phase 3+). Tạm thời tên file gốc đã chứa mã IB.
+- **PDF không có text layer:** Cần OCR (Gemini Vision fallback) — Phase 3.
+- **PC luôn bật:** Bot polling cần máy tính online. Có thể deploy VPS sau.
+
+---
+
+## 9. Constraints (Prerequisite bắt buộc)
+
+> [!IMPORTANT]
+> Bước normalize + thêm Group folder phải hoàn tất TRƯỚC khi chạy `python cli.py scan`.  
+> Ước tính: ~16 device ở "thiet-bi-chan-doan-hinh-anh", ~10-15 file/device → ~200 file cần phân loại cho 1 category.

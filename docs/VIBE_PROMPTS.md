@@ -1,297 +1,216 @@
-Đây là prompt vibe code hoàn chỉnh, chia làm **1 Master Prompt** và các **Sub-prompts theo module** để paste vào Antigravity IDE:
+# VIBE PROMPTS v2.0 — MedDevice DMS (Antigravity-First)
 
-***
+> Đây là bộ prompts để điều hướng Antigravity IDE xây dựng và vận hành hệ thống.  
+> **Tầm nhìn v2.0:** Antigravity = người quản lý tài liệu thông minh. CLI = giao diện gọn nhẹ.
 
-## Master Prompt (Paste đầu tiên)
+---
 
-```
-You are a senior full-stack developer. Build a Medical Device Document Management System called "MedDevice DMS".
-
-## Tech Stack
-- Runtime: Python 3.12
-- Database: SurrealDB (via surrealdb Python SDK)
-- Telegram Bot: aiogram 3.x
-- PDF Extraction: PyMuPDF (fitz)
-- Excel handling: openpyxl
-- Wiki: Outline.dev (REST API integration)
-- File Storage: local filesystem with structured folders
-- AI/LLM: Google Gemini API (for text extraction, classification, comparison)
-- Tunnel: cloudflared or ngrok (for Telegram webhook)
-- Environment: .env file for all secrets
-
-## Project Structure
-meddevice-dms/
-├── main.py                  # Entry point
-├── .env                     # Secrets
-├── config.py                # Config loader
-├── db/
-│   ├── schema.surql         # SurrealDB schema definitions
-│   ├── client.py            # SurrealDB connection + helpers
-│   └── migrations/          # Schema migration scripts
-├── agents/
-│   ├── parse_agent.py       # PDF/DOCX text extraction + classify
-│   ├── search_agent.py      # Full-text search queries
-│   ├── compare_agent.py     # Device comparison + XLSX export
-│   └── wiki_agent.py        # Outline.dev page generator
-├── bot/
-│   ├── handlers/
-│   │   ├── add.py           # /add command
-│   │   ├── search.py        # /search command
-│   │   ├── compare.py       # /compare command
-│   │   ├── browse.py        # /list, /docs commands
-│   │   ├── files.py         # /get command + file upload
-│   │   └── wiki.py          # /wiki command
-│   ├── keyboards.py         # Inline keyboards / menus
-│   └── middleware.py        # Auth middleware
-├── storage/
-│   └── files/               # Uploaded files organized by device
-│       └── {category}/{group}/{device_id}/
-│           ├── technical/
-│           ├── config/
-│           ├── price/
-│           ├── contract/
-│           ├── comparison/
-│           └── other/
-└── wiki/
-    └── templates/           # Markdown templates for Outline pages
-
-## .env variables needed
-SURREAL_URL=ws://localhost:8000/rpc
-SURREAL_USER=root
-SURREAL_PASS=root
-SURREAL_NS=meddevice
-SURREAL_DB=dms
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_ALLOWED_USERS=123456789,987654321
-GEMINI_API_KEY=
-OUTLINE_API_URL=http://localhost:3000/api
-OUTLINE_API_TOKEN=
-STORAGE_BASE_PATH=./storage/files
-WEBHOOK_URL=https://your-tunnel-url.com/webhook
-
-## Core Data Model (implement exactly)
-Category → Group → Device → Documents
-
-Category fields: id, name, description, created_at
-Group fields: id, name, description, category (record<category>), created_at
-Device fields: id, name, model, brand, origin, year, group (record<group>), notes, created_at, updated_at
-Document fields: id, device (record<device>), doc_type (enum), sub_type, file_path, file_url, content_text, metadata (object), uploaded_at
-
-doc_type enum values:
-- "technical" (sub_type: "VI" | "EN")
-- "config" (sub_type: "advertising" | "basic" | "quotation" | "bidding" | "compliance")
-- "link" (sub_type: "homepage" | "fda" | "ce" | "other")
-- "price" (sub_type: "quotation" | "bid_result")
-- "contract"
-- "comparison"
-- "other"
-
-Start by creating all files and folder structure. Do not write any code yet, just scaffold.
-```
-
-***
-
-## Sub-Prompt 1 – SurrealDB Schema
+## Master Context (Paste đầu phiên làm việc)
 
 ```
-Now implement db/schema.surql with the following requirements:
+Bạn đang làm việc trên dự án MedDevice DMS — hệ thống quản lý hồ sơ thiết bị y tế.
 
-1. Define all tables SCHEMAFULL:
-   - category
-   - device_group
-   - device
-   - document
-   - audit_log
+KIẾN TRÚC:
+- SurrealDB: lưu Category > Group > Device > Documents
+- storage/files/: cấu trúc {category}/{group}/{device}/{doc_type}/  (kebab-case)
+- cli.py: CLI interface (scan, search, compare, stats, normalize, wiki sync)
+- agents/: scan_agent, parse_agent, search_agent, compare_agent, wiki_agent
+- Telegram Bot: tra cứu từ xa
+- Outline Wiki (localhost:3000): Wiki tự động cập nhật
 
-2. Define all fields with correct types (use record<link> for relations).
+NAMING CONVENTION: kebab-case cho tất cả folder. Dùng unidecode.
 
-3. Define Vietnamese analyzer exactly:
-   DEFINE ANALYZER vn_analyzer TOKENIZERS blank, class FILTERS lowercase, ascii;
-
-4. Define INDEXES:
-   - DEFINE INDEX idx_content ON document FIELDS content_text SEARCH ANALYZER vn_analyzer;
-   - DEFINE INDEX idx_metadata ON document FIELDS metadata.title SEARCH ANALYZER vn_analyzer;
-   - DEFINE INDEX idx_device_name ON device FIELDS name;
-   - DEFINE INDEX idx_device_model ON device FIELDS model;
-   - DEFINE INDEX idx_device_brand ON device FIELDS brand;
-   - DEFINE INDEX idx_doc_type ON document FIELDS doc_type;
-   - DEFINE INDEX idx_doc_device ON document FIELDS device;
-
-5. Define audit_log table:
-   id, action (string), table_name (string), record_id (string), telegram_user_id (string), timestamp (datetime), changes (object)
-
-6. Define PERMISSIONS: only authenticated users can read/write all tables.
-
-7. Also implement db/client.py:
-   - AsyncSurreal singleton (from surrealdb import AsyncSurreal)
-   - Helper functions: connect(), query(), create(), update(), delete(), create_audit_log()
-   - Auto-reconnect logic with retry
-   - All functions must be async
+NGUYÊN TẮC:
+1. Chạy `python cli.py stats` trước để nắm tình trạng
+2. Gemini model: gemini-2.0-flash
+3. Dedup: giữ cả .doc + .pdf, PDF có is_primary=True
+4. Luôn dry-run trước khi thực hiện (scan, normalize)
+5. Mọi write vào DB → ghi audit_log
 ```
 
-***
+---
 
-## Sub-Prompt 2 – Parse Agent
-
-```
-Implement agents/parse_agent.py with these functions (all async where possible):
-
-1. extract_text_from_pdf(file_path: str) -> str
-   - Use PyMuPDF (fitz)
-   - Handle Vietnamese encoding properly
-   - Clean text (remove excessive whitespace, fix line breaks)
-
-2. classify_document(filename: str, caption: str = None) -> dict
-   - Rules-based first (same as before)
-   - Fallback to Gemini API (first 500 chars)
-   - Return {doc_type, sub_type, confidence: float}
-
-3. process_upload(file_path: str, device_id: str, caption: str = None, telegram_user_id: str = None) -> dict
-   - Classify document
-   - Extract text if PDF
-   - Move file to correct storage path: STORAGE_BASE/{category}/{device_group}/{device_id}/{doc_type}/
-   - Create document record in SurrealDB
-   - Call db.client.create_audit_log("create", "document", new_doc_id, telegram_user_id)
-   - Trigger wiki_agent.update_device_page(device_id)
-   - Return document record
-   - Use structlog for logging, raise custom exceptions on error
-```
-
-***
-
-## Sub-Prompt 3 – Search Agent
+## Prompt 0 — Normalize thư mục (Chỉ chạy 1 lần)
 
 ```
-Implement agents/search_agent.py (all functions async):
+Thư mục storage/files hiện có vấn đề:
+- Tên folder có tiếng Việt, space, không nhất quán 
+- 12 cặp trùng lặp (VD: "Thiet bi chan doan hinh anh" + "thiet_bi_chan_doan_hinh_anh")
 
-1. search_documents(query: str, filters: dict = {}) -> list[dict]
-   - Use SurrealQL FULLTEXT with SEARCH ANALYZER vn_analyzer
-   - Support filters: category_id, device_group_id, device_id, doc_type
-   - Use search::highlight('<b>', '</b>', 1)
-   - Return top 10 with highlight_snippet
-
-2. search_devices(query: str) -> list[dict]
-   - Search device.name, model, brand
-   - Join with device_group and category
-
-3. format_search_results_telegram(results: list) -> str
-   - Telegram-friendly format
-
-4. get_device_profile(device_id: str) -> dict
-   - Fetch full device + documents grouped by doc_type
+Quy trình:
+1. Chạy: python scripts/normalize_folders.py --dry-run
+2. Đọc output, liệt kê các thay đổi sẽ xảy ra
+3. Hỏi tôi xác nhận trước khi thực hiện
+4. Sau khi tôi xác nhận: python scripts/normalize_folders.py
+5. Tạo Group folder theo bảng PRD Section 2.3
+6. Báo cáo kết quả cuối cùng
 ```
 
-***
+---
 
-## Sub-Prompt 4 – Compare Agent
+- SurrealDB: lưu Category > Group > Device > Documents
+- storage/files/: kho file theo cấu trúc {category}/{group}/{device}/{doc_type}/
+- cli.py: CLI interface cho quản lý (scan, search, compare, stats, export)
+- agents/: scan_agent, parse_agent, search_agent, compare_agent, wiki_agent
+- Telegram Bot: tra cứu từ xa cho người dùng cuối
+- Outline Wiki (localhost:3000): trang Wiki tự động cập nhật
 
-```
-Implement agents/compare_agent.py (all async):
-
-1. compare_devices(device_id_a: str, device_id_b: str, telegram_user_id: str = None) -> dict
-   - Prefer existing "comparison" document
-   - Otherwise use Gemini 1.5 to extract specs as JSON
-   - After comparison, create audit_log entry
-
-2. render_comparison_table_markdown(comparison: dict) -> str
-
-3. export_comparison_xlsx(comparison: dict, output_path: str) -> str
-
-4. compare_handler(device_name_a: str, device_name_b: str, telegram_user_id: str) -> tuple[str, str]
+NGUYÊN TẮC LÀM VIỆC:
+1. Trước khi thực hiện bất kỳ thao tác nào → chạy `python cli.py stats` để nắm tình trạng
+2. Khi phân loại file → dùng Gemini 2.0 Flash (model: gemini-2.0-flash)
+3. Luôn check DB trước khi tạo record mới (tránh duplicate)
+4. Log đầy đủ bằng structlog
+5. Mọi thao tác write vào DB → ghi audit_log
 ```
 
-***
+---
 
-## Sub-Prompt 5 – Wiki Agent (Outline.dev)
-
-```
-Implement agents/wiki_agent.py:
-
-1. OutlineClient class with all async methods (create_document, update_document, find_document_by_title, get_or_create_collection)
-
-2. generate_device_page_markdown(device: dict, documents: list) -> str
-   - Professional Markdown with sections by doc_type
-   - Use emoji icons per type
-
-3. update_device_page(device_id: str, telegram_user_id: str = None):
-   - Fetch profile
-   - Generate markdown
-   - Update or create Outline page
-   - Create audit_log for wiki update
-
-4. generate_index_page(category_id: str = None)
-   - Auto-update after any change
-```
-
-***
-
-## Sub-Prompt 6 – Telegram Bot
+## Prompt 1 — Scan & Import thư mục
 
 ```
-Implement the complete Telegram bot using aiogram 3.x + FSM:
+Quét thư mục storage/files và nạp dữ liệu vào hệ thống.
 
-First create bot/states.py:
-from aiogram.fsm.state import StatesGroup, State
+Quy trình:
+1. Chạy `python cli.py scan --dry-run` trước để xem preview (không ghi DB)
+2. Đọc output report, báo cáo cho tôi:
+   - Bao nhiêu Category/Group/Device tìm thấy?
+   - Bao nhiêu file mỗi loại?
+   - File nào không xác định được doc_type?
+3. Tôi xác nhận → chạy `python cli.py scan` thật sự
+4. Sau khi xong → chạy `python cli.py wiki sync` để đẩy lên Outline
 
-class AddDeviceStates(StatesGroup):
-    category = State()
-    device_group = State()
-    name = State()
-    model = State()
-    brand = State()
-    origin = State()
-    year = State()
-    confirm = State()
-
-class CompareStates(StatesGroup):
-    device_a = State()
-    device_b = State()
-
-# (thêm các state khác nếu cần)
-
-Then implement:
-
-bot/handlers/browse.py, files.py, search.py, compare.py, wiki.py, add.py
-- All handlers use FSM where multi-step is needed
-- /start → main menu inline keyboard
-- File upload + caption support
-- /get <doc_id>, /docs <device>, /compare, /wiki, /add (full conversation with FSM)
-- bot/middleware.py: strict check TELEGRAM_ALLOWED_USERS + log unauthorized attempts
-- bot/keyboards.py: reusable + pagination
-- main.py: 
-  - async start with webhook (aiohttp)
-  - register all handlers + states
-  - start SurrealDB connection
-  - structlog setup
+Lưu ý: Bỏ qua file .gitkeep, .DS_Store, thumbs.db
 ```
 
-***
+---
 
-## Sub-Prompt 7 – Docker & Deployment
+## Prompt 2 — Tìm kiếm thông minh
 
 ```
-Create docker-compose.yml, Dockerfile, .env.outline, setup.sh, README.md (Vietnamese):
+Tìm kiếm trong kho tài liệu. Dùng lệnh:
+  python cli.py search "<từ khóa>"
 
-docker-compose.yml phải bao gồm:
-- surrealdb
-- outline (với postgres, redis, minio)
-- bot service (build from .)
-
-setup.sh script:
-- docker-compose up -d
-- Apply SurrealDB schema
-- Create initial Outline collections
-- Start cloudflared tunnel
-- Print all URLs
-
-README.md: full setup instructions in Vietnamese, how to add first user, how to use commands, backup guide.
+Sau khi có kết quả:
+1. Hiển thị dạng bảng: Thiết bị | Loại tài liệu | Đoạn text match
+2. Hỏi tôi có muốn xem file cụ thể không
+3. Nếu có → đọc file và tróm tắt nội dung liên quan đến từ khóa
 ```
 
-***
+---
 
-## Cách dùng sau khi chỉnh
+## Prompt 3 — Kiểm tra thiết bị thiếu tài liệu
 
-1. **Paste Master Prompt** (giữ nguyên của bạn)
-2. **Paste lần lượt 7 Sub-Prompt trên**
-3. **Sau mỗi Sub, dùng lệnh fix**:  
-   `"Refactor the code above to be fully async, add proper structlog, Pydantic models, error handling and audit log where missing."`
+```
+Chạy lệnh: python cli.py missing
+
+Phân tích output và tạo báo cáo Markdown:
+- Thiết bị nào thiếu hồ sơ kỹ thuật?
+- Thiết bị nào chưa có báo giá?
+- Thiết bị nào không có hợp đồng tương tự?
+
+Sắp xếp theo mức độ ưu tiên (thiếu nhiều tài liệu nhất lên trước).
+Hỏi tôi có muốn tạo danh sách việc cần làm không.
+```
+
+---
+
+## Prompt 4 — So sánh thiết bị
+
+```
+So sánh hai thiết bị: "<Thiết bị A>" vs "<Thiết bị B>"
+
+Quy trình:
+1. Chạy: python cli.py compare "<A>" "<B>"
+2. Nếu đã có file so sánh sẵn → dùng file đó
+3. Nếu không → Gemini trích xuất specs từ hồ sơ kỹ thuật
+4. Hiển thị bảng so sánh Markdown trực tiếp
+5. Hỏi có muốn xuất XLSX không → nếu có: python cli.py compare "<A>" "<B>" --export xlsx
+```
+
+---
+
+## Prompt 5 — Phân loại file không rõ
+
+```
+Trong thư mục storage/files có một số file chưa được phân loại.
+Thực hiện:
+1. Liệt kê các file nằm ngoài cấu trúc chuẩn hoặc trong thư mục "other/"
+2. Với mỗi file: đọc tên + 200 ký tự đầu → đề xuất doc_type phù hợp
+3. Trình bày danh sách đề xuất để tôi xác nhận
+4. Sau khi xác nhận → di chuyển file vào thư mục đúng và cập nhật DB
+```
+
+---
+
+## Prompt 6 — Đồng bộ Wiki
+
+```
+Đồng bộ toàn bộ dữ liệu từ SurrealDB lên Outline Wiki.
+
+Chạy: python cli.py wiki sync
+
+Sau khi xong:
+1. Báo cáo: bao nhiêu trang đã tạo/cập nhật
+2. Kiểm tra trang đầu tiên trên http://localhost:3000
+3. Nếu có lỗi → đọc log và đề xuất xử lý
+```
+
+---
+
+## Prompt 7 — Báo cáo tổng quan
+
+```
+Tạo báo cáo tổng quan hệ thống.
+
+Chạy: python cli.py stats --verbose
+
+Trình bày kết quả bao gồm:
+- Tổng số danh mục, nhóm, thiết bị, tài liệu
+- Phân bố tài liệu theo doc_type (dạng biểu đồ text)
+- Thiết bị có nhiều tài liệu nhất
+- Thiết bị được tra cứu nhiều nhất (nếu có log)
+- Dung lượng kho file (storage/files)
+```
+
+---
+
+## Prompt 8 — Thêm thiết bị mới (từ Antigravity)
+
+```
+Tôi muốn thêm thiết bị mới vào hệ thống.
+
+1. Hỏi tôi lần lượt:
+   - Tên Category (hoặc chọn từ danh sách hiện có)
+   - Tên Group (hoặc chọn từ danh sách)
+   - Tên thiết bị
+   - Model, Hãng sản xuất, Xuất xứ (có thể bỏ trống)
+
+2. Chạy lệnh tạo:
+   python cli.py device create --name "..." --group "..." --model "..." --brand "..."
+
+3. Tạo thư mục storage tương ứng
+4. Hỏi có muốn tạo trang Wiki ngay không
+```
+
+---
+
+## Prompt 9 — Fix & Maintain
+
+```
+Kiểm tra tình trạng hệ thống và sửa các vấn đề:
+1. python cli.py health      # kiểm tra kết nối DB, Wiki
+2. python cli.py orphans     # tìm document không có device tham chiếu
+3. python cli.py dupes       # tìm file trùng lặp
+4. Báo cáo vấn đề và đề xuất cách xử lý
+```
+
+---
+
+## Prompt 10 — Upgrade Gemini Model
+
+```
+Cập nhật model Gemini trong toàn bộ codebase:
+1. Tìm tất cả chỗ dùng model string (gemini-1.5-flash, gemini-1.5-pro, v.v.)
+2. Thay thành: gemini-2.0-flash
+3. Chạy lại một test phân loại đơn giản để xác nhận
+```
