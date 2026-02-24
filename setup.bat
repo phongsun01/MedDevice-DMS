@@ -43,7 +43,7 @@ if "!SURREAL_ID!"=="" (
     exit /b 1
 )
 
-docker exec -i !SURREAL_ID! /surreal sql --conn ws://localhost:8000 --user root --pass root --ns meddevice --db dms < db/schema.surql
+docker exec -i !SURREAL_ID! /surreal sql --user root --pass root --ns meddevice --db dms --endpoint http://localhost:8000 < db/schema.surql
 
 echo ✅ Schema applied!
 

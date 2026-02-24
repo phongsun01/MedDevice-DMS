@@ -90,9 +90,9 @@ Hoặc chạy thủ công:
 ```bash
 docker-compose up -d
 # Đợi SurrealDB khởi động, sau đó apply schema:
-docker exec -i $(docker-compose ps -q surrealdb) \
-  /surreal sql --conn ws://localhost:8000 --user root --pass root \
-  --ns meddevice --db dms < db/schema.surql
+docker exec -i $(docker compose ps -q surrealdb) \
+  /surreal sql --user root --pass root \
+  --ns meddevice --db dms --endpoint http://localhost:8000 < db/schema.surql
 ```
 
 ### Bước 3: Thiết lập Webhook
@@ -143,6 +143,7 @@ tar -czf storage_backup_$(date +%Y%m%d).tar.gz storage/
 
 ## 📋 Version
 
+- **v1.1.1** — Fix: Updated Outline Wiki `SECRET_KEY` requirements and fixed SurrealDB v3 schema application command in `setup.bat`.
 - **v1.1.0** — Release: Bot confirmed running in polling mode. Fixed SurrealDB v3 incompatibilities (named volumes, schema syntax). Fixed Box Drive Docker BuildKit issue. Added auto polling/webhook fallback.
 - **v1.0.3** — Docker fix: Added daemon check and removed obsolete version tag.
 - **v1.0.2** — Docker fix: Switched to `docker compose` for better compatibility and fixed Windows encoding.
