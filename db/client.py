@@ -145,5 +145,9 @@ async def apply_schema(schema_path: Optional[str] = None) -> None:
         log.warning("schema.not_found", path=str(path))
         return
     surql = path.read_text(encoding="utf-8")
-    await query(surql)
-    log.info("schema.applied", path=str(path))
+    try:
+        await query(surql)
+        log.info("schema.applied", path=str(path))
+    except Exception as exc:
+        log.warning("schema.apply_error", error=str(exc)[:200],
+                    msg="Schema may already be applied — continuing")

@@ -11,6 +11,18 @@ from db import client as db
 router = Router()
 
 
+def _unwrap_list(results: list) -> list:
+    """SurrealDB returns [[dict, ...]] — flatten to [dict, ...]."""
+    if not results:
+        return []
+    first = results[0]
+    if isinstance(first, list):
+        return first
+    if isinstance(first, dict):
+        return results
+    return []
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     await message.answer(
@@ -36,9 +48,9 @@ async def menu_home(callback: CallbackQuery):
 @router.message(Command("list"))
 async def browse_categories(event: Message | CallbackQuery):
     results = await db.query("SELECT * FROM category ORDER BY name")
-    cats = results if results else []
+    cats = _unwrap_list(results)
     kb = items_keyboard(cats, "cat")
-    text = "📁 <b>Chọn danh mục</b>:"
+    text = f"📁 <b>Danh mục</b> ({len(cats)} danh mục):"
 
     if isinstance(event, CallbackQuery):
         await event.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
@@ -50,13 +62,12 @@ async def browse_categories(event: Message | CallbackQuery):
 @router.callback_query(F.data.startswith("cat:"))
 async def browse_groups(callback: CallbackQuery):
     cat_record_id = callback.data.split(":", 1)[1]
-    # Rebuild full SurrealDB record ID for querying
     full_cat_id = f"category:{cat_record_id}"
     results = await db.query(
         "SELECT * FROM device_group WHERE category = $cat ORDER BY name",
         {"cat": full_cat_id},
     )
-    groups = results if results else []
+    groups = _unwrap_list(results)
     kb = items_keyboard(groups, "grp")
     text = f"📂 <b>Nhóm</b> ({len(groups)} nhóm):"
     await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
@@ -71,7 +82,7 @@ async def browse_devices(callback: CallbackQuery):
         "SELECT * FROM device WHERE device_group = $grp ORDER BY name",
         {"grp": full_grp_id},
     )
-    devices = results if results else []
+    devices = _unwrap_list(results)
     kb = items_keyboard(devices, "dev")
     text = f"📋 <b>Thiết bị</b> ({len(devices)} máy):"
     await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
@@ -98,7 +109,9 @@ async def device_detail(callback: CallbackQuery):
     )
     await callback.message.edit_text(
         text,
-        reply_markup=device_actions_keyboard(dev_id),
+        reply_markup=device_actions_keyboard(dev_record_id),
         parse_mode="HTML",
     )
     await callback.answer()
+
+

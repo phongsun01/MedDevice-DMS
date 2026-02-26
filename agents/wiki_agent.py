@@ -71,7 +71,8 @@ class OutlineClient:
         result = await self._post("/documents.search", {"query": title})
         docs = result.get("data", [])
         for doc in docs:
-            if doc.get("document", {}).get("title", "").strip() == title.strip():
+            doc_title = doc.get("document", {}).get("title") or ""
+            if doc_title.strip() == title.strip():
                 return doc["document"]["id"]
         return None
 
@@ -165,8 +166,8 @@ async def update_device_page(device_id: str, telegram_user_id: str | None = None
     md = generate_device_page_markdown(profile, documents)
 
     client = _get_client()
-    title = profile.get("name", "Unknown Device")
-    cat_name = profile.get("category_name", "General")
+    title = str(profile.get("name") or profile.get("display_name") or device_id)
+    cat_name = str(profile.get("category_name") or "General")
 
     collection_id = await client.get_or_create_collection(cat_name)
     existing_id = await client.find_document_by_title(title)

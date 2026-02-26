@@ -114,21 +114,18 @@ def main() -> None:
     print(f"Normalizing: {base.resolve()}")
     print()
 
-    # Level 1: Category
-    actions = plan_normalize(base)
-    execute_actions(actions, args.dry_run)
-
-    if args.recursive and not args.dry_run:
-        # Level 2+: Group and Device folders inside each Category
-        for cat_dir in sorted(base.iterdir()):
-            if not cat_dir.is_dir():
-                continue
-            for grp_dir in sorted(cat_dir.iterdir()):
-                if not grp_dir.is_dir():
-                    continue
-                sub_actions = plan_normalize(grp_dir)
-                if sub_actions:
-                    execute_actions(sub_actions, dry_run=False)
+    if args.recursive:
+        # Process bottom-up to avoid path invalidation
+        import os
+        for root, dirs, files in os.walk(base, topdown=False):
+            root_path = Path(root)
+            actions = plan_normalize(root_path)
+            if actions:
+                execute_actions(actions, args.dry_run)
+    else:
+        actions = plan_normalize(base)
+        if actions:
+            execute_actions(actions, args.dry_run)
 
 
 if __name__ == "__main__":

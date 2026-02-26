@@ -58,6 +58,7 @@ async def cmd_scan(args):
          console.print(f"Path override: {args.path}")
          
     try:
+        await get_db()
         from agents.scan_agent import scan_directory
         report = await scan_directory(base_dir=scan_path, dry_run=args.dry_run)
         
@@ -101,6 +102,7 @@ async def cmd_health(args):
 async def cmd_search(args):
     console.print(f"Searching for: [bold]'{args.query}'[/bold]...")
     try:
+        await get_db()
         from agents.search_agent import search_documents
         results = await search_documents(args.query) # removed limit=10
         
@@ -119,7 +121,8 @@ async def cmd_search(args):
         table.add_column("Type", justify="left", style="green")
         table.add_column("Filename", justify="left")
         
-        for doc in results:
+        for raw_doc in results:
+            doc = raw_doc[0] if isinstance(raw_doc, list) and len(raw_doc) > 0 else raw_doc
             if not isinstance(doc, dict):
                 continue
             device = doc.get('device', 'Unknown')
@@ -131,7 +134,9 @@ async def cmd_search(args):
             
         console.print(table)
     except Exception as e:
+        import traceback
         console.print(f"[red]Error searching: {e}[/red]")
+        console.print(f"[red]{traceback.format_exc()}[/red]")
 
 
 
@@ -148,7 +153,7 @@ async def cmd_missing(args):
         
         # Query devices to see which don't have these docs
         query = """
-        SELECT name, 
+        SELECT id, name, display_name,
             (SELECT doc_type FROM document WHERE device = $parent.id) AS docs
         FROM device
         """
@@ -176,7 +181,8 @@ async def cmd_missing(args):
              missing = [t for t in target_doc_types if t not in types_found]
              
              if missing:
-                 table.add_row(dev.get('name', 'Unknown'), ", ".join(missing))
+                 dev_name = dev.get('display_name') or dev.get('name') or str(dev.get('id', 'Unknown'))
+                 table.add_row(dev_name, ", ".join(missing))
                  missing_count += 1
                  
         if missing_count == 0:
@@ -198,7 +204,7 @@ async def cmd_wiki(args):
 
 async def cmd_normalize(args):
     import subprocess
-    cmd = ["python", "scripts/normalize_folders.py"]
+    cmd = ["python", "scripts/normalize_folders.py", "--recursive"]
     if args.dry_run:
         cmd.append("--dry-run")
     subprocess.run(cmd)

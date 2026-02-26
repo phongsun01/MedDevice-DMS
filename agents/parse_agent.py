@@ -85,18 +85,21 @@ async def classify_document(filename: str, caption: str | None = None) -> dict:
     # Gemini fallback
     try:
         result = await _classify_with_gemini(filename)
+        # Ensure doc_type is always a valid string
+        if not result.get("doc_type"):
+            result["doc_type"] = "other"
         return result
-    except Exception as exc:
+    except BaseException as exc:
         log.warning("classify.gemini_failed", error=str(exc))
         return {"doc_type": "other", "sub_type": None, "confidence": 0.1}
 
 
 async def _classify_with_gemini(filename: str) -> dict:
     """Use Google Gemini to classify a document by filename."""
-    import google.generativeai as genai
+    import json
+    from google import genai as google_genai
 
-    genai.configure(api_key=settings.GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    client = google_genai.Client(api_key=settings.GEMINI_API_KEY)
 
     prompt = (
         f"Classify this medical device document filename into one of these types: "
@@ -105,16 +108,21 @@ async def _classify_with_gemini(filename: str) -> dict:
         f"Return ONLY JSON: {{\"doc_type\": \"...\", \"sub_type\": \"...\", \"confidence\": 0.0-1.0}}"
     )
     try:
-        response = await model.generate_content_async(prompt)
+        response = await client.aio.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+        )
         text = response.text.strip()
         # Clean markdown if present
         if "```" in text:
             text = text.split("```")[1]
             if text.startswith("json"):
                 text = text[4:]
-        import json
-        return json.loads(text.strip())
-    except Exception as exc:
+        result = json.loads(text.strip())
+        if not result.get("doc_type"):
+            result["doc_type"] = "other"
+        return result
+    except BaseException as exc:
         log.warning("classify.gemini_error", error=str(exc))
         return {"doc_type": "other", "sub_type": None, "confidence": 0.1}
 
@@ -122,6 +130,24 @@ async def _classify_with_gemini(filename: str) -> dict:
 # ---------------------------------------------------------------------------
 # 3. Upload Processing
 # ---------------------------------------------------------------------------
+
+def _unwrap_first(results: list) -> dict | None:
+    """Safely extract the first dict from SurrealDB's variable-format results.
+    
+    SurrealDB async driver can return:
+      - [[{...}]]  (nested list, v1.x compat)
+      - [{...}]    (flat list, v3.x)
+      - [None]     (empty result)
+    """
+    if not results:
+        return None
+    first = results[0]
+    if isinstance(first, list):
+        return first[0] if first and isinstance(first[0], dict) else None
+    if isinstance(first, dict):
+        return first
+    return None
+
 
 async def process_upload(
     file_path: str,
@@ -147,13 +173,15 @@ async def process_upload(
         "SELECT *, device_group.name AS group_name, device_group.category.name AS cat_name FROM device WHERE id = $id",
         {"id": device_id},
     )
-    if not device_info or not device_info[0]:
+    # Robust unwrap: SurrealDB can return [[dict]], [dict], or [None]
+    dev = _unwrap_first(device_info)
+    if not dev:
         raise ValueError(f"Device not found: {device_id}")
 
-    dev = device_info[0][0] if isinstance(device_info[0], list) else device_info[0]
-    cat_name = _safe_name(dev.get("cat_name", "uncategorized"))
-    grp_name = _safe_name(dev.get("group_name", "ungrouped"))
+    cat_name = _safe_name(dev.get("cat_name") or "uncategorized")
+    grp_name = _safe_name(dev.get("group_name") or "ungrouped")
     dev_id_short = str(device_id).split(":")[-1]
+
 
     dest_dir = Path(settings.STORAGE_BASE_PATH) / cat_name / grp_name / dev_id_short / doc_type
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -163,6 +191,7 @@ async def process_upload(
     # Create document record
     doc_record = await db.create("document", {
         "device": device_id,
+        "filename": filename,
         "doc_type": doc_type,
         "sub_type": sub_type,
         "file_path": str(dest_path),
@@ -173,6 +202,7 @@ async def process_upload(
             "confidence": classification["confidence"],
         },
     })
+
 
     # Audit log
     new_doc_id = doc_record.get("id", "unknown")

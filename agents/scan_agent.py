@@ -19,14 +19,11 @@ log = structlog.get_logger()
 
 # Import the parser
 try:
-    from agents.parse_agent import process_file as parse_file_content
+    from agents.parse_agent import classify_document, extract_text_from_pdf
+    has_parser = True
 except ImportError:
-    # Fallback to older import path if needed
-    try:
-         from agents.parse_agent import process_file_gemini as parse_file_content
-    except ImportError:
-         log.error("scan.missing_parser", msg="Cannot import parse_file module")
-         parse_file_content = None
+    log.error("scan.missing_parser", msg="Cannot import parse_file module")
+    has_parser = False
 
 def normalize_name(text: str) -> str:
     """Convert string to kebab-case slug."""
@@ -39,9 +36,13 @@ def normalize_name(text: str) -> str:
 def infer_hierarchy(file_path: Path, base_dir: Path) -> Dict[str, str]:
     """Phân tích cấu trúc thư mục từ file_path.
     
-    Kỳ vọng cấu trúc: base_dir / category / group / device / doc_type / [sub_type] / file
+    Kỳ vọng cấu trúc tính từ GỐC: storage/files / category / group / device / doc_type / [sub_type] / file
     """
-    rel_path = file_path.relative_to(base_dir)
+    try:
+        rel_path = file_path.relative_to(Path("storage/files"))
+    except ValueError:
+        rel_path = file_path.relative_to(base_dir) 
+    
     parts = rel_path.parts
     
     hierarchy = {
@@ -99,19 +100,19 @@ async def process_file(file_path: Path, hierarchy: Dict[str, str], db, dry_run: 
     try:
         # 1. Đảm bảo Category tồn tại
         await db.query(
-            "UPSERT type::thing($id) CONTENT { name: $name, display_name: $raw_name }",
+            "UPSERT type::record($id) CONTENT { name: $name, display_name: $raw_name }",
             {"id": cat_id, "name": cat_slug, "raw_name": hierarchy["category"]}
         )
 
         # 2. Đảm bảo Group tồn tại
         await db.query(
-            "UPSERT type::thing($id) CONTENT { name: $name, display_name: $raw_name, category: $cat }",
+            "UPSERT type::record($id) CONTENT { name: $name, display_name: $raw_name, category: $cat }",
             {"id": grp_id, "name": grp_slug, "raw_name": hierarchy["group"], "cat": cat_id}
         )
 
         # 3. Đảm bảo Device tồn tại
         await db.query(
-            "UPSERT type::thing($id) CONTENT { name: $name, display_name: $raw_name, device_group: $grp }",
+            "UPSERT type::record($id) CONTENT { name: $name, display_name: $raw_name, device_group: $grp }",
             {"id": dev_id, "name": dev_slug, "raw_name": hierarchy["device"], "grp": grp_id}
         )
     except Exception as e:
@@ -142,15 +143,18 @@ async def process_file(file_path: Path, hierarchy: Dict[str, str], db, dry_run: 
 
     # 5. Extract & Phân loại bằng Gemini (parse_agent)
     doc_data = {}
-    if parse_file_content:
+    if has_parser:
         log.info("scan.parsing", file=file_path.name)
         try:
-             # Using asyncio to wrap sync parse function if it's synchronous, but assume it returns dict
-             import inspect
-             if inspect.iscoroutinefunction(parse_file_content):
-                 doc_data = await parse_file_content(str(file_path))
-             else:
-                 doc_data = parse_file_content(str(file_path))
+             text = ""
+             if file_path.suffix.lower() == ".pdf":
+                 text = await extract_text_from_pdf(str(file_path))
+             classification = await classify_document(file_path.name)
+             doc_data = {
+                 "doc_type": classification.get("doc_type"),
+                 "sub_type": classification.get("sub_type"),
+                 "content_text": text
+             }
         except Exception as e:
              log.error("scan.parse_failed", error=str(e), path=str(file_path))
              doc_data = {}

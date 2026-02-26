@@ -10,6 +10,14 @@ from agents.parse_agent import process_upload
 
 log = structlog.get_logger("import_local")
 
+# UUID-like pattern (from previous bug that created random folder names)
+_UUID_PATTERN = re.compile(r'^[a-z0-9]{16,}$')
+
+def _is_uuid_like(name: str) -> bool:
+    """Return True if the folder name looks like a random ID (corrupted data)."""
+    return bool(_UUID_PATTERN.match(name))
+
+
 async def sync_structure():
     """Scan storage/files and sync with SurrealDB."""
     base_path = Path("storage/files")
@@ -18,8 +26,11 @@ async def sync_structure():
         return
 
     # Categories are the top-level folders
-    for cat_dir in base_path.iterdir():
+    for cat_dir in sorted(base_path.iterdir()):
         if not cat_dir.is_dir(): continue
+        if _is_uuid_like(cat_dir.name):
+            log.warning("sync.skip_uuid_folder", name=cat_dir.name, level="category")
+            continue
         
         cat_name = cat_dir.name
         log.info("sync.category", name=cat_name)
@@ -36,15 +47,18 @@ async def sync_structure():
             elif isinstance(first_res, dict):
                 cat_id = first_res["id"]
             else:
-                cat_rec = await db.create("category", {"name": cat_name, "description": cat_name})
+                cat_rec = await db.create("category", {"name": cat_name, "display_name": cat_name})
                 cat_id = cat_rec["id"]
         else:
-            cat_rec = await db.create("category", {"name": cat_name, "description": cat_name})
+            cat_rec = await db.create("category", {"name": cat_name, "display_name": cat_name})
             cat_id = cat_rec["id"]
 
         # Level 2 could be Groups or Devices directly
-        for sub_dir in cat_dir.iterdir():
+        for sub_dir in sorted(cat_dir.iterdir()):
             if not sub_dir.is_dir(): continue
+            if _is_uuid_like(sub_dir.name):
+                log.warning("sync.skip_uuid_folder", name=sub_dir.name, level="group/device")
+                continue
             
             # Check if this sub_dir contains folders (it's a group) or files (it's a device)
             has_subfolders = any(d.is_dir() for d in sub_dir.iterdir())
@@ -66,12 +80,12 @@ async def sync_structure():
                         group_id = first_res["id"]
                     else:
                         group_rec = await db.create("device_group", {
-                            "name": group_name, "category": cat_id, "description": group_name
+                            "name": group_name, "category": cat_id, "display_name": group_name
                         })
                         group_id = group_rec["id"]
                 else:
                     group_rec = await db.create("device_group", {
-                        "name": group_name, "category": cat_id, "description": group_name
+                        "name": group_name, "category": cat_id, "display_name": group_name
                     })
                     group_id = group_rec["id"]
                 
@@ -94,12 +108,12 @@ async def sync_structure():
                         group_id = first_res["id"]
                     else:
                         group_rec = await db.create("device_group", {
-                            "name": group_name, "category": cat_id, "description": "Nhóm chung"
+                            "name": group_name, "category": cat_id, "display_name": "Nhóm chung"
                         })
                         group_id = group_rec["id"]
                 else:
                     group_rec = await db.create("device_group", {
-                        "name": group_name, "category": cat_id, "description": "Nhóm chung"
+                        "name": group_name, "category": cat_id, "display_name": "Nhóm chung"
                     })
                     group_id = group_rec["id"]
                 

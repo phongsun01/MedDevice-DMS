@@ -1,0 +1,555 @@
+
+--- Examion_PDF ---
+-DR Static all-in-one systems
+X-ray systems with detector – fully integrated systems 
+www.examion.com
+Customized solutions  
+for medical imaging
+Why choose EXAMION all-in-one-systems?
+EXAMION offers proven solutions designed for an efﬁcient workﬂow in hospitals and private clinics. The fully integrated  EXAMION 
+systems combine an X-ray system with a compatible detector solution. They are equipped with a central control console and a 
+ uniform operating concept.
+• Versatile and flexible:  
+Customized solutions for any application, 
+equipped with one or more detectors, as 
+required.
+• Comprehensive and reliable:  
+Perfectly matched hardware and  software 
+components for reliable workflow, 
+ excellent image quality, smooth workflow, 
+ comprehensive project planning and service 
+concepts.
+All-in-one systems – Models and variants 
+New acquisition:
+You want to equip your new clinic or reopen your practice with the latest 
+X-ray technology.
+Replacement:
+Your current X-ray system is in need of repair. Instead of recurrent expenditure 
+on your present system you want to invest in a modern X-ray system with the 
+latest operating concept.
+Application areas
+X-DR Static U-Arm
+The swivel bracket system with U-arm is one of the most compact 
+stationary X-ray systems. If space in the X-ray room is limited, all 
+examinations of the extremities and trunk of the body can be 
+comfortably performed without restrictions with the swivel bracket. 
+In a swivel bracket system, the detector is optimally protected. It is 
+pivoted to the desired position with the bucky drawer and does not 
+have to be removed from the drawer. 
+In recumbent positions, the X-DR static U-arm can be combined 
+with different mobile patient tables as needed.
+• The rotatable lateral arm of the swivel bracket allows the bucky 
+to take images in a recumbent and in an alternative upright 
+position. Intermediate positions for special imaging techniques 
+are also possible. 
+• When taking upright images the swivel bracket has special 
+advantages, because the bucky drawer and X-ray tube can be 
+moved together and quickly brought to the desired position.
+X-DR Static Z-Arm
+The Z-arm also forms part of the swivel bracket system. In addition 
+to the possibilities of the U-arm, the Z-arm offers the option of 
+taking lateral recumbent images. The patient table is then pushed 
+through the Z-shaped opening of the arm in front of the bucky 
+drawer. The classic applications of the Z-arm include lateral thorax 
+X-rays in recumbent intensive care and trauma patients.
+ 
+Even in the Z-arm the detector is optimally protected because, 
+similar to the U-arm, it is swivelled to the desired position with the 
+bucky drawer.
+ 
+Furthermore, the X-DR static Z-arm can be combined with different 
+mobile patient tables, as needed.
+X-DR Static BT & WS
+The EXAMION systems, consisting of bucky table and wall stand, are 
+solid solutions for practices, radiological centres and small clinics. 
+The systems can be equipped with one or two detectors.
+Single detector systems are used as wireless versions with batteries 
+and WiFi data transfer. This kind of detector can operate between 
+bucky table and wall stand without any annoying cables.
+Variants:
+• Fixed-height of bucky table
+• Vertically adjustable bucky table – making it easier for patients 
+to get on and off the table
+X-DRS Ceiling Standard
+The EXAMION ceiling-suspended X-ray systems meet all hospital‘s 
+requirements, including those of operating and emergency rooms.
+Variants:
+• Mechanical version with particularly smooth operation for 
+effortless positioning
+• Tracking version with electro-mechanical tracking of the X-ray 
+tube when the table or wall stand bucky is moved
+• Variants for complete leg and complete spine imaging with 
+automatic stitching on the wall stand
+• Central control console for all components – maximum 
+ operational convenience
+• Preventing operating errors
+• The fastest way to you X-ray image X-ray without additional 
+image development steps
+• Reduce your maintenance costs
+• Convince your patients with state-of-the-art technology
+Advantages of EXAMION  
+all-in-one systems
+Your beneﬁts at a glance
+• Save time searching for patient images
+• Get all relevant image information with a single click
+• Seamless integration into your existing IT system
+• Improve your image quality using high-quality detectors
+• Thanks to the dosage efficiency of modern detectors, you 
+reduce radiation exposure of your patients
+• Optimum workflow through mutually harmonised components
+Advantages of digital image storing
+Advantages of a suitable detector
+-AQS inside
+Variant 1:
+Variant 2: 
+X-AQS as a DICOM modality can 
+be connected to your existing 
+image archive.
+System solution with X-AQS PACS 
+offers uniform user interface as well 
+as operation at viewer workstations.
+The EXAMION X-AQS software has a user-friendly interface. It has clear and self-explanatory buttons, which deliver a perfect X-ray 
+image with just a few clicks.
+Post-editing
+Placing of orders
+Image acquisition
+Additional features with X-AQS PACS:
+• Touchscreen operation throughout
+• Clear depiction and selection of body regions
+• Freely configurable organ lists for each body 
+regions
+•  State-of-the-art X-AQS image processing
+• Consistent user interface and operation steps even 
+when switching between CR and DR systems
+• Acquisition of the dose area product in the digital 
+X-ray journal
+• Export in DICOM and other formats via USB stick, 
+DVD or e-mail
+• Extensive functions for post-editing the image
+• Complete diagnostic viewer with measuring tools 
+even at acquisition workstation
+• Client software for an infinite number of viewer 
+workstations
+• Integration of peripherals such as ultrasound, 
+endoscopy, CT and MRT
+Version: 12/2019
+Changes in product illustrations or changes which serve the technical progress, as well as mistakes are reserved. 
+Publisher: EXAMION GmbH, Erich-Herion-Str. 37, 70736 Fellbach, Germany. 
+Erich-Herion-Str. 37
+70736 Fellbach
+Germany
+www.examion.com
+sales@examion.com
++ 49 711 120 002 - 0
++49 711 120 002 - 22
+Contact head ofﬁce
+EXAMION GmbH
+Beneﬁt from years of experience
+X-ray equipment
+Digital system
+Image archiving
+Service
+GmbH
+EXAMION is a global provider of digital radiography solutions for human and veterinary medicine. We have been operating 
+ according to our ‚one-stop expert‘ principle for 30 years, assisting our customers with competent advice in planning, installation and 
+after-sales services.
+We currently support more than 7,000 systems, which are primarily 
+ stationary installations in hospitals and medical practices, partially also 
+mobile applications. Our proprietary EXAMION X-AQS software for system 
+control, image processing, diagnosis and archiving ensures a standardised 
+control and efﬁcient workﬂow. 
+In addition to radiography and digital image processing, our product range 
+includes ﬂuoroscopy, mammography and radiotherapy.
+Our more than 100 specialists work as a team for our customers throughout 
+Germany, and four European locations in Belgium, Poland, Portugal and 
+Switzerland.
+Through a network of certiﬁed sales and service partners, EXAMION provides 
+customers around the world with its latest state-of-the-art X-ray solutions.
+EXAMION is characterised by its extensive market expertise, cutting-edge technology and its vast number of project references in the 
+private and public sector.
+Certiﬁed partner of EXAMION
+
+--- Examion_XLSX ---
+Error XLSX d:\Antigravity\MedDeviceDMS\storage\files\thiet-bi-chan-doan-hinh-anh\x-quang\x-quang-examion\ĐUKT_MAY_XQUANG_ĐỨC_TẤM_PRUDENT_BẢN_CHUẨN.xlsx: [Errno 2] No such file or directory: 'd:\\Antigravity\\MedDeviceDMS\\storage\\files\\thiet-bi-chan-doan-hinh-anh\\x-quang\\x-quang-examion\\ĐUKT_MAY_XQUANG_ĐỨC_TẤM_PRUDENT_BẢN_CHUẨN.xlsx'
+--- Fuji_PDF ---
+FUJIFILM 
+Hệ thống X-Quang số hóa 
+Removable      
+Grid 
+Thông số kỹ thuật hệ thống FDR Smart 
+ĐƠN GIẢN CHÍNH LÀ THÔNG MINH 
+ 
+Tập đoàn Fujifilm tự hào giới thiệu hệ thống X-quang mới nhất chất 
+lượng cao và hiệu suất tốt nhất.  
+Hệ thống thân thiện với người dùng này có thể lắp đặt đơn giản với 
+diện tích tiết kiệm, dễ dàng sử dụng, đảm bảo tiến độ làm việc tốt nhất.  
+ 
+CHỦ NGHĨA TỐI GIẢN HÓA 
+FDR Smart f tập trung vào những nhân tố thiết yếu nhất, cung 
+cấp cho người dùng những chức năng cần thiết nhất. 
+Công nghệ cũ 
+  
+ 
+The  novel type  Asl : Tl  F®D, com bining an ad hesively  cou pied structu re 
+with  ISS method, exh i bits si g nificant inn prove ment in i mage qual ity than  
+conve ntiona I CsJ:Tl  FPDs ancl  orovides a way to  red uce X  ray exposu re 
+to the  patient. 
+Công nghệ mới 
+Công nghệ vật liệu CsI với cấu 
+trúc tinh thể  hình kim nâng cao 
+hiệu suất thu nhận tín hiệu tia X 
+và biến đổi thành tín hiệu hình 
+ảnh. Kết hợp với công nghệ ISS 
+cho phép tạo ra hình ảnh số hóa 
+sắc nét hơn với liều lia nhỏ hơn 
+Vật liệu biến đổi tia X 
+Các Sensor TFT được đặt ở phía trước lớp vật 
+liệu nhạy sáng (Scintillator) thay vì đặt phía sau 
+như công nghệ cũ. Kỹ thuật này giúp tạo ra hình 
+ảnh số sắc nét hơn với liều tia nhỏ hơn 
+Công nghệ mới 
+Công nghệ cũ 
+Lớp nền trong suốt 
+Lớp nền trong 
+suốt 
+Vùng hấp thụ tia X và 
+biến đổi thành tín 
+hiệu hình ảnh hiệu 
+suất cao 
+Vùng hấp thụ tia X 
+và biến đổi thành 
+tín hiệu hình ảnh 
+hiệu suất thấp 
+Công nghệ CsI mới kết hợp giữa cấu trúc vật liệu kép bền vững 
+và phương pháp thu nhận tín hiệu ISS tạo ra hình ảnh số độ 
+phân giải cao đồng thời giảm liều tia đối với bệnh nhân 
+Hình ảnh mô tả 
+khả năng phân 
+bố tín hiệu 
+quang trên bề 
+mặt lớp Sensor 
+TFT 
+Hình ảnh mô tả 
+khả năng phân 
+bố tín hiệu 
+quang trên bề 
+mặt lớp Sensor 
+TFT 
+Công nghệ ISS 
+TÍNH CHÍNH XÁC 
+ 
+Nếu như bạn chú trọng vào việc giảm liều tia X mà vẫn giữ được chất 
+lượng hình ảnh tuyệt vời thì D-EVO chính là sự lựa chọn hoàn hảo.  
+ 
+ 
+Xử lý ảnh theo công nghệ cũ 
+Xử lý ảnh theo công nghệ mới 
+Hình ảnh yêu cầu 
+Công nghệ xử lý hình ảnh mới 
+Chất lượng hình ảnh chẩn đoán của Fujifilm nay 
+còn được cải tiến hơn. Bằng công nghệ xử lý hình 
+ảnh tiên tiến nhất cùng với bề dày lịch sử kinh 
+nghiệm trong hình ảnh y tế và những nỗ lực 
+không ngừng trong việc nâng cao chất lượng hình 
+ảnh chẩn đoán, BẢNG ĐIỀU KHIỂN của Fujifilm 
+hoàn toàn đáp ứng được nhu cầu của thị trường y 
+tế hiện đại.  
+Công nghệ xử lý hình ảnh của Fujifilm tự động 
+nhận biêt khu vực được quan tâm và tập trung 
+các thông số xử lý tối ưu nhất để cho ra hình ảnh 
+rõ nét. Công nghệ này giúp giảm thiểu khối lượng 
+công việc cho người dùng và hỗ trợ đẩy nhanh 
+quá trình chẩn đoán của Bác sĩ.  
+Phân Loại 
+ 
+Chúng tôi cung cấp các loại nguồn điện ổn định phù hợp với mọi điều kiện   
+Tủ điều khiển có 
+Ăcqui 
+Thích hợp với phòng X-
+quang quy mô trung  bình. 
+Không có nguồn điện dự 
+phòng cần thiết 40 kW, 
+một pha, có thể hoạt 
+động với nguồn công 
+suất đầu vào tối thiểu 
+3kW 
+Tủ điều khiển có 
+UPS 
+Có khả năng cung cấp 
+nguồn cho máy chụp 
+trong 5 giờ (tương ứng 
+500 lần phát tia) khi mất 
+điện. Thích hợp cho những 
+bệnh viện có nguồn điện 
+không ổn định, công suất  
+40kW,  một pha, có thể 
+hoạt động với nguồn 
+công suất đầu vào tối 
+thiểu 1kW 
+”Unstable electricity supply 
+Tủ điều khiển sử dụng 
+nguồn điện trực tiếp 
+ 
+Có thể  điều chỉnh công 
+suất của tủ điều khiển  
+tương ứng với  công suất  
+làm việc  trong các bệnh 
+viện lớn: 40 kW /52kW 
+/68kW /82kW, 3 pha 
+Trung tâm Y tế 
+Miền quê/Nông thôn 
+Bệnh viện quy mô lớn 
+FDR Smart dòng FGX  
+ 
+FGX-C40S 
+FGX-U40S 
+FGX-40S 
+FGX-52S 
+FGX-68S 
+FGX-82S 
+TỦ ĐIỀU KHIỂN 
+Loại có Ắcqui 
+Loại có UPS 
+Loại sử dụng nguồn điện trực tiếp 
+Tên sản phẩm 
+GXR-C40S 
+GXR-U40S 
+GXR-40 
+GXR-52 
+GXR-68 
+GXR-82 
+Công suất định 
+mức 
+40 KW 
+40 KW 
+40 KW 
+52 KW 
+68 KW 
+82 KW 
+Điện áp/Pha 
+110/120 VAC 
+230 VAC, 1 pha 
+100-240VAC 
+1 pha 
+230 VAC, 1 pha 
+400/480 VAC, 3 
+pha 
+400/480 VAC, 3 pha 
+Sai lệch cho phép 
++/- 10% (tần số 50/60Hz) 
+Dải kV 
+40-125 kV, 1 kV/bước 
+40-150 kV, 1 kV/bước 
+Dải mA 
+10-500 mA 
+10-500 mA 
+10-500 mA 
+10-640 mA 
+10-800 mA 
+10-1000 mA 
+Dải  thời gian 
+0,001 – 10 giây, 38 bước 
+Dải mAs 
+0.1 -500 mAs  
+Thông số định 
+mức 
+500 mA-80 kV 
+500 mA-80 kV 
+500 mA-80 kV 
+640 mA-81 kV 
+800 mA-85 kV 
+1000 mA-82 kV 
+400 mA-100 kV 
+400 mA-100 
+kV 
+400 mA-100 kV 
+500 mA-104 kV 
+640 mA-106 kV 
+800 mA-102 kV 
+320 mA-125 kV 
+320 mA-125 
+kV 
+320 mA-125 kV 
+400 mA-130 kV 
+500 mA-136 kV 
+640 mA-128 kV 
+320 mA-150 kV 
+400 mA-150 kV 
+500 mA-150 kV 
+Dòng cắt  
+Aptomat 
+15 A (230 V, 1pha) 
+30 A (110Vac, 3 
+pha) 
+10 A  
+100 A (230 V, 1pha 
+75 A (400 V, 3 pha 
+90 A (400 V, 3 pha) 
+100 A (400 V, 3 pha) 
+65 A (400 V,  
+3 pha 
+65 A (480 V, 3 pha 
+75 A (480 V, 3 pha) 
+90 A (480 V, 3 pha) 
+50 A(480 V,  
+3 pha) 
+Chương  trình 
+thăm khám 
+Tối đa 1280 chương trình với phần mềm tiện ích APR 
+Lựa chọn thông 
+số chụp 
+Hiển thị 4 thông số chụp: kV, mA, Time, mAs 
+BÓNG CHỤP X-QUANG 
+E7242X/Toshiba 
+E7884X/Toshiba 
+E7252X/Toshiba 
+E7255X/Toshiba 
+Kích thước  tóc 
+nhỏ /tóc lớn 
+0.6/1.5 mm 
+0.6/1.2 mm 
+0.6/1.2 mm 
+0.6/1.2 mm 
+Nhiệt độ định 
+mức Anot 
+200 kHU 
+300 kHU 
+300 kHU 
+300 kHU 
+Góc  
+14⁰ 
+12⁰ 
+12⁰ 
+12⁰ 
+ỐNG CHUẨN TRỰC 
+R108F/RALCO 
+Hình dạng trường 
+quan sát 
+Hình chữ nhật 
+Độ rộng trường quan 
+sát 
+Lớn hơn 43x43 cm(17”x17”) khi khoảng cách từ bóng tới Detector là  100 cm 
+Lớp lọc tia 
+Tối thiểu 2mm làm bằng vật liệu nhôm (Al) 
+Độ sáng 
+Trên 160 LUX tại khoảng cách chụp 100 cm (thường là 250 LUX) 
+Nguồn sáng 
+Ánh sáng đơn sắc (Single LED) 
+Tiêu chuẩn 
+Đường laze, thước đo, góc quay 
+Thông số kỹ thuật FDR Smart f  
+Thông số kỹ thuật FDR Smart f  
+FUJIFILM Middle East FZE 
+P.O. Box: 17212, Jebel Ali  Free Zone,  Dubai - United Arab  Emirates 
+Tel. :  +971 f0)4-883-9990   I   Fax.: +971-f0l4-883-9882   I   E-mail: fujime-med6fujifilm.ae 
+Bàn chụp bệnh nhân 
+Mặt bàn trôi trượt 4 hướng 
+Mặt bàn di chuyển 6 hướng  
+Di 
+chuyển 
+Mặt bàn 
+Dọc  
+1000 (+/-500)mm 
+Ngang 
+250 (+/-125)mm 
+Chiều 
+thẳng 
+đứng 
+Di chuyển 
+285 (565-850)mm 
+Tốc độ 
+17mm/giây 
+Vận hành 
+Các chuyển động được điều khiển bằng động cơ 1 chiều thông 
+qua Footswitch (truyền động tuyến tính) 
+Giá chụp 
+phổi 
+Chiều dọc 
+350mm đối với khay tiêu chuẩn 
+Mặt bàn 
+ 
+Lọc tia 
+1,2mm Al tại 100 kV 
+Trọng lượng 
+tối đa 
+300Kg (660 lbs) 
+Kích thước 
+(mm) 
+2200 (dài)x750(rộng)x70(cao) mm 
+2200(dài) x 810(rộng) x 45(cao) mm 
+Kiểu Bucky/Lưới lọc 
+tia 
+Động 
+FD 34-44 inch, 103 đường/inch, tỉ lệ 10:1 
+Tĩnh 
+FD 100 cm, 200 đường/inch, tỉ lệ 10:1, option Grid di động 
+Khóa (Phanh hãm) 
+Khi phanh điện từ khóa, cảm ứng tia tắt/bật 
+Khi phanh điện từ khóa, Foot Switch tắt/bật 
+Chỉ báo tiêu điểm 
+Âm thanh còi và đèn LED 
+Tiêu điểm phương ngang và phương thẳng đứng 
+Kích thước/trọng 
+lượng 
+2200(dài) x 750(rộng) x 660(cao) mm/150 Kg 
+(330 lbs) 
+Tối đa 2200(dài) x 810(rộng) x 850(cao) mm/260Kg (573lbs) 
+Giá chụp phổi 
+Cassette 
+Cao 1640  mm (420-2060 mm từ sàn đến tâm Giá chụp) 
+Kiểu giá/Lưới lọc tia 
+ 
+Động 
+Khoảng cách tới tiêu điểm 40-72 inch, 103 lpi, tỉ lệ 10:1 
+Tĩnh 
+Khoảng cách tới tiêu điểm 150 cm, 200lpi, tỉ lệ 10:1 
+Khóa (Phanh hãm) 
+Khi phanh điện từ khóa, Switch tắt/mở 
+Cân bằng trọng lực 
+Hệ thống được trang bị đối trọng để cân bằng trọng lực 
+Kích thước/trọng lượng 
+ 
+Tối đa 2169(cao) x 655(rộng) x 410(sâu) mm/120Kg (264 lbs) 
+ 
+Cột bóng gắn cố định với sàn 
+Góc quay bóng 
++/- 135⁰ 
+Di chuyển bóng 
+Dọc 
+Tối đa 2200 mm 
+Ngang 
+220 mm 
+Thẳng 
+đứng 
+1580 mm (440  ~ 2020mm tính từ sàn đến tâm bóng) 
+Khóa (Phanh hãm) 
+ 
+Khi phanh điện từ khóa, Foot Switch tắt/mở 
+Cân bằng trọng lực 
+Hệ thống được trang bị đối trọng để cân bằng trọng lực 
+Góc quay bóng 
+90⁰/bước 
+Kích thước/trọng lượng 
+ 
+2317(cao) x 1373(sâu) x 3006 (rộng) mm/ 240Kg (529 lbs) 
+Thiết kế phòng chụp nhỏ gọn 
+ 
+Chiều 
+cao trần 
+tối thiểu: 
+2450 mm 
+(97) 
+Kích thước 
+DR-ID 600 bao gồm DR-ID 300CL) 
+ 
+FDR D-EVO G35i/G35s, C35i/C35s đều tích 
+hợp với FDR Smart f.  
+Để biết thêm thông tin chi tiết, xin mời 
+tham khảo brochure của dòng FDR D-EVO. 
+FDR Smart dòng FG
+--- Fuji_DOCX ---
+THÔNG SỐ KỸ THUẬT 
+
+
+
+												

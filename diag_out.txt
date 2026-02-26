@@ -1,0 +1,6 @@
+﻿2026-02-25 16:01:47 [info     ] surrealdb.connected            attempt=1
+RUNNING DIAGNOSTIC QUERY...
+DIAGNOSTIC RES TYPE: <class 'list'>
+ITEM: {'device': RecordID(table_name=device, record_id='dr9nn3zp830oo5x8jsfh'), 'doc_type': 'other', 'filename': 'FDR_SMART f_Brochure- Vietnamese.pdf', 'id': RecordID(table_name=document, record_id='07qid2ydwxma01gbsydn'), 'text_length': 8433}
+ITEM: {'device': RecordID(table_name=device, record_id='noerj8uiw3t1225h4wmh'), 'doc_type': 'other', 'filename': 'AG220523-01_AX-4060 leaflet.pdf', 'id': RecordID(table_name=document, record_id='0bz2adnco8gyt2om5g8a'), 'text_length': 0}
+ITEM: QUERY ERROR: 'charmap' codec can't encode character '\u031b' in position 133: character maps to <undefined>

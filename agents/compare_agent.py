@@ -76,10 +76,9 @@ async def _get_device_text(device_id: str) -> str:
 
 async def _compare_with_gemini(text_a: str, text_b: str, id_a: str, id_b: str) -> dict:
     """Use Gemini to extract and compare specifications."""
-    import google.generativeai as genai
+    from google import genai as google_genai
 
-    genai.configure(api_key=settings.GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    client = google_genai.Client(api_key=settings.GEMINI_API_KEY)
 
     prompt = f"""Extract all technical specifications from the following two medical device documents as JSON.
 Return format: {{"device_a": "name_a", "device_b": "name_b", "specs": [{{"name": "spec name", "value_a": "value", "value_b": "value"}}]}}
@@ -91,10 +90,13 @@ Return format: {{"device_a": "name_a", "device_b": "name_b", "specs": [{{"name":
 {text_b[:8000]}
 """
     try:
-        response = await model.generate_content_async(prompt)
+        response = await client.aio.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+        )
         raw = response.text.strip().strip("```json").strip("```")
         return json.loads(raw)
-    except Exception as exc:
+    except BaseException as exc:
         log.error("compare.gemini_failed", error=str(exc))
         return {
             "device_a": str(id_a),

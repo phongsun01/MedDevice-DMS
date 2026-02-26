@@ -57,7 +57,7 @@ services:
   # ============================================================
   bot:
     build: .
-    env_file: .env
+    env_file: .env.docker
     volumes:
       - ./storage:/app/storage
       - ./db:/app/db

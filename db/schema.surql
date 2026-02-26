@@ -14,6 +14,7 @@ DEFINE TABLE category SCHEMAFULL
         FOR select, create, update, delete WHERE $auth != NONE;
 
 DEFINE FIELD name        ON category TYPE string;
+DEFINE FIELD display_name ON category TYPE option<string>;
 DEFINE FIELD description ON category TYPE option<string>;
 DEFINE FIELD created_at  ON category TYPE datetime DEFAULT time::now();
 
@@ -25,6 +26,7 @@ DEFINE TABLE device_group SCHEMAFULL
         FOR select, create, update, delete WHERE $auth != NONE;
 
 DEFINE FIELD name        ON device_group TYPE string;
+DEFINE FIELD display_name ON device_group TYPE option<string>;
 DEFINE FIELD description ON device_group TYPE option<string>;
 DEFINE FIELD category    ON device_group TYPE record<category>;
 DEFINE FIELD created_at  ON device_group TYPE datetime DEFAULT time::now();
@@ -37,6 +39,7 @@ DEFINE TABLE device SCHEMAFULL
         FOR select, create, update, delete WHERE $auth != NONE;
 
 DEFINE FIELD name         ON device TYPE string;
+DEFINE FIELD display_name ON device TYPE option<string>;
 DEFINE FIELD model        ON device TYPE string;
 DEFINE FIELD brand        ON device TYPE string;
 DEFINE FIELD origin       ON device TYPE option<string>;
@@ -54,6 +57,7 @@ DEFINE TABLE document SCHEMAFULL
         FOR select, create, update, delete WHERE $auth != NONE;
 
 DEFINE FIELD device       ON document TYPE record<device>;
+DEFINE FIELD filename     ON document TYPE string;
 DEFINE FIELD doc_type     ON document TYPE string;
 DEFINE FIELD sub_type     ON document TYPE option<string>;
 DEFINE FIELD file_path    ON document TYPE option<string>;
@@ -82,8 +86,8 @@ DEFINE FIELD changes          ON audit_log TYPE object FLEXIBLE;
 -- ============================================================
 
 -- Content indexes
-DEFINE INDEX idx_content  ON document FIELDS content_text;
-DEFINE INDEX idx_metadata ON document FIELDS metadata;
+DEFINE INDEX IF NOT EXISTS idx_content ON document FIELDS content_text;
+DEFINE INDEX IF NOT EXISTS idx_metadata ON document FIELDS metadata;
 
 -- Device lookup indexes
 DEFINE INDEX idx_device_name  ON device FIELDS name;

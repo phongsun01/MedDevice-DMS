@@ -13,14 +13,15 @@ log = structlog.get_logger(__name__)
 # 1. Full-text document search
 # ---------------------------------------------------------------------------
 
-async def search_documents(query: str, filters: dict | None = None) -> list[dict]:
-    """Search documents with SurrealQL FULLTEXT and optional filters.
+async def search_documents(query: str, filters: dict = None) -> list[dict]:
+    """
+    Tìm kiếm văn bản dựa trên nội dung.
 
     filters keys: category_id, device_group_id, device_id, doc_type
     """
-    filters = filters or {}
-
-    where_clauses = ["content_text @1@ $query"]
+    if filters is None:
+        filters = {}
+    where_clauses = ["content_text @@ $query"]
     params: dict = {"query": query}
 
     if filters.get("device_id"):
@@ -35,7 +36,7 @@ async def search_documents(query: str, filters: dict | None = None) -> list[dict
     surql = f"""
         SELECT
             *,
-            search::highlight('<b>', '</b>', 1) AS highlight_snippet,
+            content_text[0..200] AS highlight_snippet,
             device.name AS device_name,
             device.device_group.name AS group_name,
             device.device_group.category.name AS category_name
@@ -46,7 +47,9 @@ async def search_documents(query: str, filters: dict | None = None) -> list[dict
 
     try:
         results = await db.query(surql, params)
-        rows = results if results else []
+        rows = []
+        if isinstance(results, list) and len(results) > 0:
+             rows = [item for row in results for item in (row if isinstance(row, list) else [row]) if isinstance(item, dict)]
         log.info("search.documents", query=query[:50], count=len(rows))
         return rows
     except Exception as exc:
