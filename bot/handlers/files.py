@@ -133,9 +133,12 @@ async def _handle_upload_option_a(message: Message, filename: str, tmp_path: str
             async with session.post(
                 f"{API_BASE}/api/classify_file",
                 json={"filename": filename},
-                timeout=aiohttp.ClientTimeout(total=40)
+                timeout=aiohttp.ClientTimeout(total=90)  # gemini-cli cần tới 45s+
             ) as resp:
                 result = await resp.json()
+    except aiohttp.ServerTimeoutError:
+        await status_msg.edit_text("⏱️ Phân tích quá lâu (>90s). Thử lại hoặc dùng caption để chỉ định thiết bị.")
+        return
     except Exception as e:
         await status_msg.edit_text(f"❌ Lỗi kết nối API: {e}")
         return
