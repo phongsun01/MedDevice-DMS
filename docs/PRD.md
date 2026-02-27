@@ -84,20 +84,19 @@ Khi có cả `.doc` lẫn `.pdf` cùng nội dung:
 
 ### Prerequisite — Normalize (TRƯỚC KHI SCAN)
 
-**P0: Normalize folder** (chạy 1 lần duy nhất trước khi import):
-- `python cli.py normalize --dry-run` → preview kế hoạch đổi tên
-- `python cli.py normalize` → thực hiện rename sang kebab-case
-- `python cli.py merge-dupes` → gộp folder trùng (VD: `Thiet bi...` + `thiet_bi_...`)
-
-**P1: Thêm Group folder** (chạy 1 lần sau normalize):
-- Tạo thư mục group theo bảng 2.3
-- Di chuyển device folder vào đúng group
+**P0: Normalize folder & Auto-Grouping** (chạy 1 lần duy nhất trước khi import):
+- `python cli.py normalize --dry-run` → preview kế hoạch đổi tên và phân nhóm
+- `python cli.py normalize` → thực hiện chuỗi hành động:
+  1. Đổi tên folder sang định dạng `kebab-case`.
+  2. Xóa bỏ các cấp độ thư mục thừa như `chung` hoặc `other-group`.
+  3. Tự động nhận diện Group dựa trên tiền tố của thiết bị (VD: `sieu-am-acuson` → đưa vào group `sieu-am`).
+  4. Gom toàn bộ file kỹ thuật, cấu hình, hợp đồng lên ngang hàng trong thư mục Device.
 
 ---
 
 ### Module A — File Scanner & Classifier (Antigravity Core)
 
-- **A0:** Normalize folder names (kebab-case) — see Prerequisite
+- **A0:** Normalize folder names & groupings — see Prerequisite
 - **A1:** Quét cây thư mục `storage/files` theo cấu trúc `cat/group/device/type/`
 - **A2:** Đọc nội dung file (PDF → PyMuPDF, DOCX → python-docx, XLSX → openpyxl)
 - **A3:** Phân loại `doc_type`, `sub_type` từ tên file + nội dung (Gemini 2.0 Flash)

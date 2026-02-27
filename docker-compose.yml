@@ -4,7 +4,8 @@ services:
   # ============================================================
   surrealdb:
     image: surrealdb/surrealdb:latest
-    command: start --log info --user root --pass root memory
+    user: root
+    command: start --log debug --user root --pass root rocksdb:///data
     ports:
       - "8000:8000"
     volumes:

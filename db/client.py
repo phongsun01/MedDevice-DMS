@@ -71,18 +71,33 @@ async def query(surql: str, params: Optional[dict] = None) -> list:
     client = await _get_client()
     try:
         result = await client.query(surql, params or {})
+        if isinstance(result, list):
+            for r in result:
+                if isinstance(r, dict) and r.get("status") == "ERR":
+                    raise Exception(f"SurrealDB Error: {r.get('detail')}")
         return result
     except Exception as exc:
         log.error("surrealdb.query_failed", query=surql[:120], error=str(exc))
         # Try reconnect once
         await connect()
         client = await _get_client()
-        return await client.query(surql, params or {})
+        result = await client.query(surql, params or {})
+        if isinstance(result, list):
+            for r in result:
+                if isinstance(r, dict) and r.get("status") == "ERR":
+                    raise Exception(f"SurrealDB Error: {r.get('detail')}")
+        return result
 
 
 async def create(table: str, data: dict) -> dict:
-    """Create a record in the given table."""
+    """Create a record in the given table. If table contains ':' it is treated as a record ID."""
     client = await _get_client()
+    
+    if ":" in table:
+        tb, id_ = table.split(":", 1)
+        data["id"] = id_  # Send only the ID target, client binds it correctly
+        table = tb
+
     result = await client.create(table, data)
     # Handle list return or string ID return
     if isinstance(result, list) and result:
@@ -96,12 +111,22 @@ async def create(table: str, data: dict) -> dict:
 async def update(record_id: str, data: dict) -> dict:
     """Update an existing record by its full ID (e.g. 'device:abc123')."""
     client = await _get_client()
+    
+    from surrealdb import RecordID
+    if isinstance(record_id, str) and ":" in record_id:
+        tb, id_ = record_id.split(":", 1)
+        record_id = RecordID(tb, id_)
+        
     result = await client.merge(record_id, data)
+    if not result:
+        return None
     if isinstance(result, list) and result:
         result = result[0]
+    # Check if result is an error dict from SurrealDB
+    if isinstance(result, dict) and "id" in result and isinstance(result["id"], str) and "Cannot perform" in result["id"]:
+        return None  # Let it fallback to create if merge fails miserably
     log.info("surrealdb.updated", record_id=record_id)
     return result if isinstance(result, dict) else {"id": result}
-
 
 async def delete(record_id: str) -> None:
     """Delete a record by its full ID."""

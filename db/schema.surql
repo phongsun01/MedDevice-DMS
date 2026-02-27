@@ -40,8 +40,8 @@ DEFINE TABLE device SCHEMAFULL
 
 DEFINE FIELD name         ON device TYPE string;
 DEFINE FIELD display_name ON device TYPE option<string>;
-DEFINE FIELD model        ON device TYPE string;
-DEFINE FIELD brand        ON device TYPE string;
+DEFINE FIELD model        ON device TYPE option<string>;
+DEFINE FIELD brand        ON device TYPE option<string>;
 DEFINE FIELD origin       ON device TYPE option<string>;
 DEFINE FIELD year         ON device TYPE option<int>;
 DEFINE FIELD device_group ON device TYPE record<device_group>;
@@ -58,12 +58,17 @@ DEFINE TABLE document SCHEMAFULL
 
 DEFINE FIELD device       ON document TYPE record<device>;
 DEFINE FIELD filename     ON document TYPE string;
-DEFINE FIELD doc_type     ON document TYPE string;
+DEFINE FIELD doc_type     ON document TYPE option<string>;
 DEFINE FIELD sub_type     ON document TYPE option<string>;
+DEFINE FIELD is_primary   ON document TYPE option<bool>;
+DEFINE FIELD is_archive   ON document TYPE option<bool>;
+DEFINE FIELD title        ON document TYPE option<string>;
+DEFINE FIELD language     ON document TYPE option<string>;
+DEFINE FIELD specs        ON document TYPE option<object> FLEXIBLE;
 DEFINE FIELD file_path    ON document TYPE option<string>;
 DEFINE FIELD file_url     ON document TYPE option<string>;
 DEFINE FIELD content_text ON document TYPE option<string>;
-DEFINE FIELD metadata     ON document TYPE object FLEXIBLE;
+DEFINE FIELD metadata     ON document TYPE option<object> FLEXIBLE;
 DEFINE FIELD uploaded_at  ON document TYPE datetime DEFAULT time::now();
 
 -- ============================================================

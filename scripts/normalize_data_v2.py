@@ -126,35 +126,33 @@ class Normalizer:
                 continue
                 
             cat = to_kebab(parts[0])
-            group = "chung"
-            device = "unknown"
             is_archive = "archive" in [p.lower() for p in parts]
             
-            # Logic to infer Group and Device (v2.1)
-            # Step 1: Detect Device by skipping temporary 'chung' and 'other-group' levels
-            current_device_idx = 1
-            while current_device_idx < len(parts) and parts[current_device_idx] in ["chung", "other-group"]:
-                current_device_idx += 1
-            
-            if current_device_idx < len(parts):
-                current_device = to_kebab(parts[current_device_idx])
+            # Identify the actual device name (it's the parent folder, or grandparent if archive)
+            if is_archive and len(parts) >= 3:
+                current_device = to_kebab(parts[-3])
+            elif len(parts) >= 2:
+                current_device = to_kebab(parts[-2])
             else:
                 current_device = "unknown"
+                
+            # Ignore intermediate folders like "chung", "other-group", or existing group names
+            # If the device is detected as "chung", "archive", etc., then it's wrong, but the folder structure shouldn't have files directly in "chung".
             
             current_group = "other-group"
             
-            # Step 2: Refine Group based on Device Name Prefix or existing path
-            # Check p1 if it was already a valid group
-            p1 = to_kebab(parts[1])
-            if p1 in self.known_groups:
-                current_group = p1
+            # Try to detect if a group was explicitly specified in the path
+            for p in parts[1:-1]:
+                pk = to_kebab(p)
+                if pk in self.known_groups:
+                    current_group = pk
+                    break
             
+            # If no explicit group in path, check mapping and prefixes
             if current_group == "other-group":
-                # Check mapping first
                 if current_device in self.device_to_group:
                     current_group = self.device_to_group[current_device]
                 else:
-                    # Check prefixes (e.g. sieu-am-acuson -> sieu-am)
                     for kg in sorted(self.known_groups, key=len, reverse=True):
                         if current_device.startswith(kg + "-"):
                             current_group = kg
@@ -163,7 +161,7 @@ class Normalizer:
             group = current_group
             device = current_device
             
-            # DEBUG
+            # For debugging
             # print(f"DEBUG: {rel} -> cat={cat}, group={group}, device={device}")
 
             # Flatten all files into Device root, unless it's in an archive folder

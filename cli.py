@@ -26,7 +26,7 @@ async def cmd_stats(args):
         results = await db.query("SELECT count() FROM category GROUP ALL")
         cat_count = results[0]['count'] if isinstance(results, list) and results else 0
         
-        results = await db.query("SELECT count() FROM group GROUP ALL")
+        results = await db.query("SELECT count() FROM device_group GROUP ALL")
         group_count = results[0]['count'] if isinstance(results, list) and results else 0
 
         results = await db.query("SELECT count() FROM device GROUP ALL")

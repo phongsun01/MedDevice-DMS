@@ -116,7 +116,7 @@ async def process_file(file_path: Path, hierarchy: Dict[str, str], db, dry_run: 
 
     # Define DB IDs
     cat_id = f"category:{cat_slug}"
-    grp_id = f"group:{grp_slug}"
+    grp_id = f"device_group:{grp_slug}"
     dev_id = f"device:{dev_slug}"
 
     if dry_run:
@@ -126,23 +126,24 @@ async def process_file(file_path: Path, hierarchy: Dict[str, str], db, dry_run: 
 
     # -- Thực tế ghi DB --
     try:
+        from db.client import create, update
+        from surrealdb import RecordID
+        
+        async def upsert(rec_id, data):
+            # Try to update first, if it returns empty/[] it means record doesn't exist
+            res = await update(rec_id, data)
+            if not res:
+                 res = await create(rec_id, data)
+            return res
+
         # 1. Đảm bảo Category tồn tại
-        await db.query(
-            "UPSERT type::record($id) CONTENT { name: $name, display_name: $raw_name }",
-            {"id": cat_id, "name": cat_slug, "raw_name": hierarchy["category"]}
-        )
+        await upsert(cat_id, {"name": cat_slug, "display_name": hierarchy["category"]})
 
         # 2. Đảm bảo Group tồn tại
-        await db.query(
-            "UPSERT type::record($id) CONTENT { name: $name, display_name: $raw_name, category: $cat }",
-            {"id": grp_id, "name": grp_slug, "raw_name": hierarchy["group"], "cat": cat_id}
-        )
+        await upsert(grp_id, {"name": grp_slug, "display_name": hierarchy["group"], "category": RecordID("category", cat_slug)})
 
         # 3. Đảm bảo Device tồn tại
-        await db.query(
-            "UPSERT type::record($id) CONTENT { name: $name, display_name: $raw_name, device_group: $grp }",
-            {"id": dev_id, "name": dev_slug, "raw_name": hierarchy["device"], "grp": grp_id}
-        )
+        await upsert(dev_id, {"name": dev_slug, "display_name": hierarchy["device"], "device_group": RecordID("device_group", grp_slug)})
     except Exception as e:
         log.error("scan.db_setup_failed", error=str(e), path=str(file_path))
         result["error"] = f"DB setup failed: {e}"
@@ -195,8 +196,9 @@ async def process_file(file_path: Path, hierarchy: Dict[str, str], db, dry_run: 
         if pdf_path.exists():
             is_primary = False
 
+    from surrealdb import RecordID
     insert_data = {
-        "device": dev_id,
+        "device": RecordID("device", dev_slug),
         "filename": file_path.name,
         "doc_type": hierarchy["doc_type"],
         "sub_type": hierarchy["sub_type"],
@@ -210,11 +212,14 @@ async def process_file(file_path: Path, hierarchy: Dict[str, str], db, dry_run: 
     }
 
     try:
-        await db.query("CREATE document CONTENT $data", {"data": insert_data})
+        query_res = await db.query("CREATE document CONTENT $data", {"data": insert_data})
+        if isinstance(query_res, str) and ("error" in query_res.lower() or "couldn't" in query_res.lower()):
+            raise Exception(query_res)
         result["status"] = "success"
         result["action"] = "inserted"
         log.info("scan.document_inserted", filename=file_path.name, device=dev_id)
     except Exception as e:
+        print(f"INSERT ERROR: {e}")
         log.error("scan.insert_failed", error=str(e), path=str(file_path))
         result["error"] = f"Insert failed: {e}"
         result["status"] = "error"
