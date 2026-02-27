@@ -18,8 +18,17 @@ logger = logging.getLogger("Antigravity-API")
 
 app = web.Application()
 
-# Khởi tạo Gemini Client (dùng cho Option B)
-gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+# Khởi tạo Gemini Client (dùng cho Option B chat — cần GEMINI_API_KEY)
+# Nếu không có key → Option A (gemini-cli OAuth) vẫn chạy bình thường
+_gemini_client = None
+
+def get_gemini_client():
+    global _gemini_client
+    if _gemini_client is None:
+        if not settings.GEMINI_API_KEY:
+            return None
+        _gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    return _gemini_client
 
 # ─── Option B: System Prompt & Gemini Chat ───────────────────────────────────
 
@@ -48,8 +57,11 @@ def get_gemini_response_with_tools(query: str, history_msgs: list) -> tuple[str,
         for msg in history_msgs
     ]
     contents.append(types.Content(role="user", parts=[types.Part.from_text(text=query)]))
+    client = get_gemini_client()
+    if client is None:
+        return "⚠️ Chức năng chat cần GEMINI_API_KEY. Hệ thống đang chạy Option A (phân loại file). Vui lòng cấu hình API key để dùng chat.", None
     try:
-        response = gemini_client.models.generate_content(
+        response = client.models.generate_content(
             model='gemini-2.0-flash',
             contents=contents,
             config=types.GenerateContentConfig(
@@ -158,10 +170,15 @@ async def handle_classify_file(request):
 
         if not ai_result:
             # Fallback sang Gemini API nếu gemini-cli thất bại
+            fallback_client = get_gemini_client()
+            if fallback_client is None:
+                return web.json_response({
+                    "error": "gemini-cli thất bại và không có GEMINI_API_KEY để fallback. Kiểm tra gemini-cli đã đăng nhập chưa."
+                }, status=503)
             try:
                 with open(GEMINI_MD_PATH, "r", encoding="utf-8") as f:
                     ctx = f.read()
-                response = gemini_client.models.generate_content(
+                response = fallback_client.models.generate_content(
                     model="gemini-2.0-flash",
                     contents=f"{ctx}\n\nFilename: {filename}\nReturn JSON only."
                 )
