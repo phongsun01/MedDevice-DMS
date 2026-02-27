@@ -134,9 +134,9 @@ python cli.py classify --file <path>           # Phân loại 1 file cụ thể
 
 ### Module D — Telegram Bot (Antigravity Relay)
 
-- **Trạm trung chuyển (Dumb Client):** Trở thành Webhook Relay đẩy toàn bộ tin nhắn đa phương tiện (Tin nhắn text tự do, Upload file) lên mạng lưới Antigravity API (Headless Agent).
-- **Zero Hardcoding:** Xóa bỏ hoàn toàn các cấu trúc lệnh cũ (`/search`, `/compare`, FSM rắc rối).
-- **Luồng xử lý mới:** User chat tự do → Bot đẩy JSON lên Antigravity API → Antigravity tự quyết định gọi Tools (quét file, đọc PDF, query DB) → Antigravity trả Markdown/File cho Bot → Bot gửi cho User.
+- **Giao diện Relay Đa chế độ:** Bot Telegram hỗ trợ 2 chế độ (A & B). Chế độ mặc định là Option B (Chạy độc lập).
+- **Option A (Antigravity-Mediated):** Luồng xử lý User => Bot => Antigravity Agent (IDE Headless) => Thực thi Tools => Bot => Trả kết quả. Ở chế độ này, Antigravity trực tiếp quản trị và thay đổi dữ liệu/file hệ thống theo yêu cầu của user.
+- **Option B (Independent Bot):** Luồng xử lý User => Bot => API Server (Gemini) => Trả kết quả. Dành cho truy vấn thông tin, so sánh nhanh không can thiệp sâu vào file hệ thống.
 
 ---
 
