@@ -1,44 +1,62 @@
-# MedDevice DMS - Hệ thống Skill & Lệnh (Capabilities)
+# MedDevice DMS — Khả năng Hệ thống (v2.3.0)
 
-Tài liệu này tổng hợp các khả năng xử lý của Agents, các lệnh điều khiển qua Bot và CLI, cũng như các quy trình làm việc (Workflows) có sẵn trong hệ thống.
-
-## 🤖 1. Các Skills (AI Agents)
-Vị trí: `agents/`
-
-Hệ thống sử dụng các Agent chuyên biệt để xử lý từng nhiệm vụ:
-- **scan_agent.py**: Quét cấu trúc phẳng (Category/Group/Device), tự động phân loại qua Prefix/Suffix.
-- **parse_agent.py**: Trích xuất dữ liệu từ PDF/Word, tích hợp Vision để đọc các bản scan chất lượng thấp.
-- **search_agent.py**: Xử lý tìm kiếm thông minh, semantic search và lọc kết quả.
-- **compare_agent.py**: Phân tích thông số kỹ thuật (Specs) và lập bảng so sánh.
-- **wiki_agent.py**: Đồng bộ hóa dữ liệu tự động với Outline Wiki.
-
-## ⚡ 2. Slash Commands (Telegram Bot)
-Các lệnh tương tác trực tiếp qua Telegram:
-| Lệnh | Mô tả |
-|---|---|
-| `/start` | Hiển thị menu chính và hướng dẫn sử dụng. |
-| `/list` | Duyệt danh mục thiết bị theo cấp độ: Category > Group > Device. |
-| `/search <từ khóa>` | Tìm kiếm thông minh trong toàn bộ kho tài liệu (Relay qua Headless Agent). |
-| `/add` | Quy trình (wizard) để thêm thiết bị mới từ xa. |
-| `/wiki` | Cung cấp link truy cập nhanh hệ thống Wiki (Outline). |
-
-## 🛠 3. CLI Commands (`cli.py`)
-Công cụ dòng lệnh dành cho quản trị viên:
-- `python cli.py stats`: Thống kê tổng quan số lượng thiết bị, file và dung lượng.
-- `python cli.py scan`: Quét thư mục nguồn (mặc định: `D:\MedicalData`) để nạp dữ liệu.
-- `python cli.py health`: Kiểm tra trạng thái kết nối Database, Wiki và Bot.
-- `python cli.py wiki sync`: Đồng bộ dữ liệu hiện có lên trang Wiki.
-- `python cli.py compare <A> <B>`: So sánh chi tiết thông số giữa hai thiết bị.
-
-## 📜 4. Vibe Prompts (Workflows)
-Vị trí: `docs/VIBE_PROMPTS.md`
-
-Hệ thống tích hợp các quy trình làm việc chuẩn giúp Agent Antigravity giải quyết các tác vụ phức tạp:
-- **Normalize v2.1**: Chuẩn hóa thư mục sang cấu trúc phẳng và thêm Prefix/Suffix tự động.
-- **Bulk Import**: Quy trình nạp dữ liệu hàng loạt an toàn từ `D:\MedicalData`.
-- **Missing Check**: Phát hiện thiết bị thiếu hồ sơ/báo giá.
-- **Health Check & Fix**: Tự động sửa lỗi dữ liệu (orphan records).
-- **Onboard**: Quy trình nạp thiết bị mới từ folder vừa tạo.
+> **Cập nhật:** 2026-02-27 | Phản ánh kiến trúc Hybrid Option A & B.
 
 ---
-*Tài liệu được khởi tạo bởi Antigravity vào ngày 26/02/2026.*
+
+## 🤖 1. AI Agents (`agents/`)
+
+| Agent | Nhiệm vụ |
+|---|---|
+| `scan_agent.py` | Quét cây thư mục, phân loại file theo Prefix/Suffix, ghi vào DB |
+| `parse_agent.py` | Trích xuất thông số kỹ thuật từ PDF/Word (Gemini Vision cho file scan) |
+| `search_agent.py` | Tìm kiếm ngữ nghĩa và full-text trong SurrealDB |
+| `compare_agent.py` | So sánh specs 2 thiết bị, xuất Excel |
+| `wiki_agent.py` | Đồng bộ dữ liệu tự động lên Outline Wiki |
+| `normalize_agent.py` *(v2.3 — sắp có)* | Nhận tên file thô → trả về tên chuẩn hóa theo convention |
+
+---
+
+## ⚡ 2. Lệnh Telegram Bot
+
+### Option B (Standalone — hiện tại)
+| Lệnh / Hành động | Mô tả |
+|---|---|
+| `/start` | Menu chính |
+| `/ask <câu hỏi>` | Chat tự do với AI (có trí nhớ ngắn hạn) |
+| `/list` | Duyệt Category > Group > Device |
+| `/docs` | Xem tài liệu một thiết bị |
+| `/wiki` | Link nhanh Outline Wiki |
+| `/add` | Wizard thêm thiết bị mới |
+
+### Option A (Antigravity-Mediated — v2.3)
+| Hành động | Mô tả |
+|---|---|
+| Upload file | AI đề xuất phân loại → Bot hỏi xác nhận → Tự động move + index |
+| Nhắn lệnh quản trị | "Quét lại thư mục", "Đồng bộ Wiki", "Báo cáo thiếu hồ sơ" |
+| `/switch_mode` | Admin chuyển A/B runtime |
+
+---
+
+## 🛠 3. CLI Commands (`cli.py`)
+
+```bash
+python cli.py stats          # Thống kê tổng (Categories/Groups/Devices/Docs)
+python cli.py scan           # Quét & nạp dữ liệu từ D:\MedicalData
+python cli.py scan --dry-run # Preview, không ghi DB
+python cli.py health         # Kiểm tra SurrealDB + Wiki
+python cli.py search "<từ>"  # Tìm kiếm
+python cli.py missing        # Thiết bị thiếu hồ sơ/báo giá
+python cli.py normalize      # Chuẩn hóa tên thư mục + file
+python cli.py wiki sync      # Đồng bộ lên Outline Wiki
+```
+
+---
+
+## 🖥 4. API Server (`api_server.py`)
+
+| Endpoint | Mô tả |
+|---|---|
+| `POST /api/chat` | Nhận tin nhắn từ Bot, xử lý bằng Gemini + Memory |
+| `POST /api/classify_file` *(v2.3)* | Nhận thông tin file, trả về đề xuất phân loại |
+| `POST /api/execute_task` *(v2.3)* | Thực thi lệnh CLI đã được user xác nhận |
