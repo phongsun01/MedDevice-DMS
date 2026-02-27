@@ -12,6 +12,10 @@ echo ""
 echo "📦 Starting Docker services..."
 docker compose up -d
 
+# 1.5. Stop the Bot container to prevent Polling Conflict with local testing
+echo "🛑 Stopping Docker Bot to prevent Telegram Conflict Error..."
+docker compose stop bot
+
 # 2. Wait for SurrealDB
 echo ""
 echo "⏳ Waiting for SurrealDB..."
