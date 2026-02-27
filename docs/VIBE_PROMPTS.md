@@ -1,7 +1,7 @@
-# VIBE PROMPTS v2.0 — MedDevice DMS (Antigravity-First)
+# VIBE PROMPTS v2.1 — MedDevice DMS (Antigravity-First)
 
 > Đây là bộ prompts để điều hướng Antigravity IDE xây dựng và vận hành hệ thống.  
-> **Tầm nhìn v2.0:** Antigravity = người quản lý tài liệu thông minh. CLI = giao diện gọn nhẹ.
+> **Tầm nhìn v2.1:** Lưu trữ tùy chỉnh (`D:\MedicalData`), Cấu trúc phẳng, Phân loại qua Prefix/Suffix.
 
 ---
 
@@ -12,43 +12,39 @@ Bạn đang làm việc trên dự án MedDevice DMS — hệ thống quản lý
 
 KIẾN TRÚC:
 - SurrealDB: lưu Category > Group > Device > Documents
-- storage/files/: cấu trúc {category}/{group}/{device}/{doc_type}/  (kebab-case)
+- Storage: Mặc định tại D:\MedicalData (có thể sửa tại .env: STORAGE_BASE_PATH)
+- File Structure: {category}/{group}/{device}/{prefix}{filename}{suffix}.ext (kebab-case)
+- Prefix/Suffix rule: config/data_naming.json
 - cli.py: CLI interface (scan, search, compare, stats, normalize, wiki sync)
 - agents/: scan_agent, parse_agent, search_agent, compare_agent, wiki_agent
-- Telegram Bot: tra cứu từ xa
-- Outline Wiki (localhost:3000): Wiki tự động cập nhật
+- Telegram Bot: tra cứu từ xa (Relay mode)
+- Outline Wiki: Wiki tự động cập nhật via API
 
 NAMING CONVENTION: kebab-case cho tất cả folder. Dùng unidecode.
 
 NGUYÊN TẮC:
 1. Chạy `python cli.py stats` trước để nắm tình trạng
-2. Gemini model: gemini-2.0-flash
-3. Dedup: giữ cả .doc + .pdf, PDF có is_primary=True
+2. Storage path: Luôn lấy từ settings.STORAGE_BASE_PATH
+3. Phân loại: Ưu tiên bóc tách Prefix/Suffix từ tên file trước khi dùng Gemini
 4. Luôn dry-run trước khi thực hiện (scan, normalize)
-5. Mọi write vào DB → ghi audit_log
-6. Khi gặp PDF không có text layer → dùng Gemini Vision (gemini-2.0-flash với file upload)
-7. File hợp đồng (contract/) > 10MB → chỉ extract metadata, không extract toàn bộ text
+5. Khi gặp PDF không có text layer → dùng Gemini Vision
 ```
 
 ---
 
-## Prompt 0 — Normalize thư mục (Chỉ chạy 1 lần)
+## Prompt 0 — Normalize dữ liệu cũ sang v2.1
 
 ```
-Thư mục storage/files hiện có vấn đề:
-- Tên folder có tiếng Việt, space, không nhất quán 
-- 12 cặp trùng lặp (VD: "Thiet bi chan doan hinh anh" + "thiet_bi_chan_doan_hinh_anh")
+Tôi có dữ liệu cũ cần chuẩn hóa sang cấu trúc v2.1 (phẳng + naming rules).
+Thư mục nguồn (D:\MedicalData) hiện không đồng nhất.
 
 Quy trình:
-1. Chạy: python scripts/normalize_folders.py --dry-run
-2. Đọc output, liệt kê các thay đổi sẽ xảy ra
-2b. Phát hiện và liệt kê các cặp folder trùng nội dung
-2c. Với mỗi cặp: merge nội dung vào folder đích, xóa folder cũ
-2d. Hỏi tôi xác nhận từng cặp trước khi merge
-3. Hỏi tôi xác nhận trước khi thực hiện các thay đổi chung
-4. Sau khi tôi xác nhận: python scripts/normalize_folders.py
-5. Tạo Group folder theo bảng PRD Section 2.3
-6. Báo cáo kết quả cuối cùng
+1. Chạy: python scripts/normalize_data_v2.py --path "D:\MedicalData"
+2. Đọc output log, kiểm tra:
+   - Các file có được gán Group đúng không? (ct-scan, sieu-am...)
+   - Prefix/Suffix có được thêm đúng dựa trên từ khóa không?
+3. Nếu mọi thứ OK -> chạy thật: python scripts/normalize_data_v2.py --path "D:\MedicalData" --run
+4. Sau khi xong, chạy `python cli.py scan` để cập nhật Database.
 ```
 
 

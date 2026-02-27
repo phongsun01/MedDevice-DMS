@@ -31,13 +31,13 @@ Quy trình theo thứ tự: User gửi tài liệu qua Telegram → Agent xử l
 
 ### SurrealDB
 
-- Lưu hồ sơ (documents với fields: name, specs, docs), realtime sync.[^3]
+- Lưu hồ sơ (tài liệu đã chuẩn hóa Prefix/Suffix, specs, path thực tế tại D:\MedicalData).[^3]
 - Query semantic/full-text cho tìm kiếm, graph cho quan hệ thiết bị.[^3]
 
 
-### Wiki (Foam/Dendron extension)
+### Wiki (Outline)
 
-- Hiển thị tổng quát (graph view hồ sơ), link docs, realtime từ DB.[^5]
+- Hiển thị tổng quát (graph view hồ sơ), link docs, realtime sync từ DB qua Outline API.[^5]
 
 Setup ban đầu: Prompt Antigravity "Build this workflow with SurrealDB + Telegram bot".[^6]
 
