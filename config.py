@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     # Storage
     STORAGE_BASE_PATH: str = "D:\\MedicalData"
 
+    # Agent mode: "A" = gemini-cli agentic, "B" = standalone Gemini API, "C" = IDE queue
+    AGENT_MODE: str = "B"
+
     @property
     def data_naming(self) -> dict:
         """Load naming prefixes and suffixes from config/data_naming.json."""
