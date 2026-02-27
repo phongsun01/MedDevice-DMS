@@ -50,10 +50,16 @@ class Normalizer:
             "siemens-dsa": "dsa",
             "siemens-0-55": "mri",
             "examion": "x-quang",
-            "fdr-68s": "x-quang"
+            "fdr-68s": "x-quang",
+            "lida-800": "may-sinh-hoa",
+            "lida-500": "may-sinh-hoa"
         }
 
-        self.known_groups = ["ct-scan", "sieu-am", "c-arm", "dsa", "mri", "x-quang"]
+        self.known_groups = [
+            "ct-scan", "sieu-am", "c-arm", "dsa", "mri", "x-quang",
+            "may-sinh-hoa", "may-huyet-hoc", "may-mien-dich", "xet-nghiem-sinh-hoa",
+            "he-thong-x-quang", "he-thong-ct", "may-chup-cat-lop"
+        ]
 
     def classify_file(self, filename):
         name = unidecode(filename).lower()
@@ -125,21 +131,39 @@ class Normalizer:
             # Logic to infer Group and Device (v2.1)
             p1 = to_kebab(parts[1])
             
-            if p1 in self.known_groups:
-                # Case: Cat / Group / ...
-                group = p1
+            # Step 1: Detect Device and Group
+            current_device = "unknown"
+            current_group = "other-group"
+            
+            if p1 == "chung" and len(parts) >= 3:
+                # If we are in the 'chung' folder I accidentally created, look deeper
+                current_device = to_kebab(parts[2])
+            elif p1 in self.known_groups:
+                current_group = p1
                 if len(parts) >= 3:
-                    device = to_kebab(parts[2])
+                    current_device = to_kebab(parts[2])
                 else:
-                    device = "chung"
-            elif p1 in self.device_to_group:
-                # Case: Cat / Device / ... (where Device is known)
-                group = self.device_to_group[p1]
-                device = p1
+                    current_device = "chung"
             else:
-                # Case: Cat / Device / ...
-                device = p1
-                group = "chung"
+                current_device = p1
+
+            # Step 2: Refine Group based on Device Name Prefix
+            if current_group == "other-group":
+                # Check mapping first
+                if current_device in self.device_to_group:
+                    current_group = self.device_to_group[current_device]
+                else:
+                    # Check prefixes (e.g. sieu-am-acuson -> sieu-am)
+                    for kg in sorted(self.known_groups, key=len, reverse=True):
+                        if current_device.startswith(kg + "-"):
+                            current_group = kg
+                            break
+            
+            group = current_group
+            device = current_device
+            
+            # DEBUG
+            # print(f"DEBUG: {rel} -> cat={cat}, group={group}, device={device}")
 
             # Flatten all files into Device root, unless it's in an archive folder
             new_filename = self.get_new_filename(file_path.name)
