@@ -20,7 +20,7 @@ def _is_uuid_like(name: str) -> bool:
 
 async def sync_structure():
     """Scan storage/files and sync with SurrealDB."""
-    base_path = Path("storage/files")
+    base_path = Path(settings.STORAGE_BASE_PATH)
     if not base_path.exists():
         log.error("storage.missing", path=str(base_path))
         return

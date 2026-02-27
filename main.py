@@ -14,11 +14,9 @@ from config import settings
 from db import client as db_client
 from bot.middleware import AuthMiddleware
 
-# Handler routers
 from bot.handlers.browse import router as browse_router
-from bot.handlers.search import router as search_router
+from bot.handlers.relay import router as relay_router
 from bot.handlers.files import router as files_router
-from bot.handlers.compare import router as compare_router
 from bot.handlers.wiki import router as wiki_router
 from bot.handlers.add import router as add_router
 from aiogram.types import BotCommand
@@ -26,9 +24,8 @@ from aiogram.types import BotCommand
 async def set_commands(bot: Bot):
     commands = [
         BotCommand(command="start", description="Menu chính"),
-        BotCommand(command="search", description="Tìm kiếm thiết bị"),
-        BotCommand(command="list", description="Duyệt danh mục"),
-        BotCommand(command="compare", description="So sánh thiết bị"),
+        BotCommand(command="ask", description="Hỏi Antigravity (Tự nhiên)"),
+        BotCommand(command="list", description="Duyệt danh mục thiết bị"),
         BotCommand(command="docs", description="Xem tài liệu thiết bị"),
         BotCommand(command="wiki", description="Mở Outline Wiki"),
         BotCommand(command="add", description="Thêm thiết bị mới"),
@@ -76,9 +73,8 @@ async def run_polling():
     dp.callback_query.middleware(AuthMiddleware())
 
     dp.include_router(browse_router)
-    dp.include_router(search_router)
+    dp.include_router(relay_router)
     dp.include_router(files_router)
-    dp.include_router(compare_router)
     dp.include_router(wiki_router)
     dp.include_router(add_router)
 
@@ -107,9 +103,8 @@ def create_app() -> web.Application:
     dp.callback_query.middleware(AuthMiddleware())
 
     dp.include_router(browse_router)
-    dp.include_router(search_router)
+    dp.include_router(relay_router)
     dp.include_router(files_router)
-    dp.include_router(compare_router)
     dp.include_router(wiki_router)
     dp.include_router(add_router)
 

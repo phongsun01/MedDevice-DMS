@@ -1,0 +1,74 @@
+{
+    "prefixes": {
+        "tech": "tech-",
+        "config": "config-",
+        "price": "price-",
+        "contract": "contract-",
+        "other": "other-"
+    },
+    "suffixes": {
+        "vi": "-vi",
+        "en": "-en",
+        "bidding": "-bidding",
+        "compliance": "-compliance",
+        "quotation": "-quotation",
+        "comparison": "-comparison"
+    },
+    "keywords": {
+        "tech": [
+            "tskt",
+            "brochure",
+            "manual",
+            "datasheet",
+            "thong so",
+            "ky thuat"
+        ],
+        "config": [
+            "ib",
+            "moi thau",
+            "compliance",
+            "dap ung",
+            "quotation",
+            "bao gia",
+            "quyet dinh",
+            "qdtt"
+        ],
+        "price": [
+            "price",
+            "gia",
+            "bao gia"
+        ],
+        "contract": [
+            "hdtt",
+            "hop dong",
+            "contract"
+        ],
+        "vi": [
+            "vi",
+            "viet",
+            "tieng viet",
+            "vn"
+        ],
+        "en": [
+            "en",
+            "english",
+            "tieng anh"
+        ],
+        "bidding": [
+            "ib",
+            "thau"
+        ],
+        "compliance": [
+            "dap ung",
+            "compliance"
+        ],
+        "quotation": [
+            "bao gia",
+            "quotation"
+        ],
+        "comparison": [
+            "so sanh",
+            "compare"
+        ]
+    }
+}

@@ -6,13 +6,14 @@ MedDevice DMS là giải pháp quản lý hồ sơ kỹ thuật, thông số và
 
 ## 🌟 Tính năng chính
 
-- **Cấu trúc phân cấp**: Category > Group > Device với tài liệu được phân loại tự động.
+- **Cấu trúc phẳng (v2.1)**: Category > Group > Device với tài liệu được phân loại tự động qua Prefix/Suffix.
+- **Lưu trữ tùy chỉnh**: Cho phép cấu hình đường dẫn lưu trữ ngoài (ví dụ: `D:\MedicalData`).
 - **Tìm kiếm AI**: Full-text search trong PDF, Word & Excel (SurrealDB + Gemini).
 - **So sánh tự động**: Trích xuất và so sánh thông số kỹ thuật giữa các thiết bị.
-- **Telegram Bot**: Tra cứu, tải file, thêm thiết bị từ xa qua chat.
+- **Telegram Bot**: Tra cứu qua Relay mode, đẩy yêu cầu tới Headless Agent.
 - **Wiki (Outline)**: Trang Wiki tự động cập nhật từ cơ sở dữ liệu.
 - **Bulk Import**: Nạp hàng loạt từ thư mục local bằng `import_local.py`.
-- **Audit Log**: Ghi nhật ký toàn bộ thao tác (bắt buộc cho phần mềm y tế).
+- **Audit Log**: Ghi nhật ký toàn bộ thao tác.
 
 ## 🛠 Công nghệ sử dụng
 
@@ -85,7 +86,9 @@ python main.py
 
 ## 📋 Changelog
 
-- **v1.2.0** — Fix: Sửa lỗi RecordID format trong callback của Telegram Bot, các handler `/list` và `/search` hoạt động đúng. Đồng bộ hóa toàn bộ code xử lý kết quả SurrealDB (flat list). Thêm QUICKSTART.md, import_local.py, docs/ANTIGRAVITY_AGENT.md.
+- **v2.1.0** — Refactor Storage: Di chuyển kho dữ liệu sang `D:\MedicalData` (configurable via .env). Chuyển sang cấu trúc thư mục phẳng trong Device. Thêm hệ thống tự động phân loại tài liệu qua Prefix/Suffix (`config/data_naming.json`). Cập nhật `scan_agent.py` và `cli` để hỗ trợ logic mới. Chuẩn hóa 225 file hiện có.
+- **v2.0.0** — Antigravity-First: Chuyển đổi Telegram Bot thành Relay, xử lý logic tập trung tại Headless Agent thông qua API Server.
+- **v1.2.0** — Release: Fix RecordID format, nạp dữ liệu hàng loạt.
 - **v1.1.1** — Security: Xóa file .env khỏi Git history. Fix Outline SECRET_KEY & SurrealDB v3 schema command trong setup.bat.
 - **v1.1.0** — Release: Bot polling mode, sửa Docker volume error trên Windows.
 - **v1.0.1** — Windows release: Thêm setup.bat.

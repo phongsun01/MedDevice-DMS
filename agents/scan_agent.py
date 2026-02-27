@@ -14,6 +14,8 @@ from typing import Dict, Any, Optional
 
 import structlog
 from unidecode import unidecode
+from config import settings
+
 
 log = structlog.get_logger()
 
@@ -36,12 +38,12 @@ def normalize_name(text: str) -> str:
 def infer_hierarchy(file_path: Path, base_dir: Path) -> Dict[str, str]:
     """Phân tích cấu trúc thư mục từ file_path.
     
-    Kỳ vọng cấu trúc tính từ GỐC: storage/files / category / group / device / doc_type / [sub_type] / file
+    CẤU TRÚC MỚI (v2.1): base_dir / category / group / device / filename
     """
     try:
-        rel_path = file_path.relative_to(Path("storage/files"))
+        rel_path = file_path.relative_to(base_dir)
     except ValueError:
-        rel_path = file_path.relative_to(base_dir) 
+        rel_path = file_path # Fallback
     
     parts = rel_path.parts
     
@@ -49,23 +51,49 @@ def infer_hierarchy(file_path: Path, base_dir: Path) -> Dict[str, str]:
         "category": None,
         "group": None,
         "device": None,
-        "doc_type": None,
+        "doc_type": "other",
         "sub_type": None,
+        "language": None,
         "filename": file_path.name,
-        "is_unclassified": False
+        "is_unclassified": False,
+        "is_archive": "archive" in parts
     }
     
-    if len(parts) >= 4:
+    # Cấu hình naming từ settings
+    naming = settings.data_naming
+    prefixes = naming.get("prefixes", {})
+    suffixes = naming.get("suffixes", {})
+
+    # 1. Xác định Category/Group/Device (3-level structure)
+    if len(parts) >= 3:
         hierarchy["category"] = parts[0]
         hierarchy["group"] = parts[1]
         hierarchy["device"] = parts[2]
-        hierarchy["doc_type"] = parts[3]
-        if len(parts) > 5:
-             hierarchy["sub_type"] = parts[4]
     else:
-        # Nếu file nằm nông hơn, đánh dấu để xem xét (hoặc Other)
         hierarchy["is_unclassified"] = True
-        
+        return hierarchy
+
+    # 2. Phân loại dựa vào Prefix/Suffix của filename
+    filename_lower = file_path.name.lower()
+    
+    # Check prefixes for doc_type
+    for doc_type, prefix in prefixes.items():
+        if filename_lower.startswith(prefix.lower()):
+            hierarchy["doc_type"] = doc_type
+            break
+            
+    # Check suffixes
+    found_suffixes = []
+    for suffix_key, suffix_val in suffixes.items():
+        if filename_lower.endswith(suffix_val.lower() + file_path.suffix.lower()):
+            if suffix_key in ['vi', 'en']:
+                hierarchy["language"] = suffix_key
+            else:
+                found_suffixes.append(suffix_key)
+    
+    if found_suffixes:
+        hierarchy["sub_type"] = "-".join(found_suffixes)
+
     return hierarchy
 
 
@@ -149,24 +177,15 @@ async def process_file(file_path: Path, hierarchy: Dict[str, str], db, dry_run: 
              text = ""
              if file_path.suffix.lower() == ".pdf":
                  text = await extract_text_from_pdf(str(file_path))
-             classification = await classify_document(file_path.name)
+             
+             # can use Gemini for deep classification if needed, 
+             # but we prioritize hierarchy detection from name
              doc_data = {
-                 "doc_type": classification.get("doc_type"),
-                 "sub_type": classification.get("sub_type"),
                  "content_text": text
              }
         except Exception as e:
              log.error("scan.parse_failed", error=str(e), path=str(file_path))
              doc_data = {}
-
-    # Override doc_type from folder structure if Gemini failed or provided bad info
-    if hierarchy["doc_type"]:
-         # We trust folder structure more for doc_type
-         # Map internal folder names to valid doc types
-         folder_type = hierarchy["doc_type"].lower()
-         valid_types = ['technical', 'price', 'contract', 'config', 'comparison', 'other']
-         if folder_type in valid_types:
-             doc_data["doc_type"] = folder_type
 
     # 6. Insert Document
     is_primary = True
@@ -179,12 +198,14 @@ async def process_file(file_path: Path, hierarchy: Dict[str, str], db, dry_run: 
     insert_data = {
         "device": dev_id,
         "filename": file_path.name,
-        "doc_type": doc_data.get("doc_type", hierarchy["doc_type"] or "other"),
-        "sub_type": hierarchy["sub_type"] or doc_data.get("sub_type"),
-        "title": doc_data.get("title", file_path.stem),
+        "doc_type": hierarchy["doc_type"],
+        "sub_type": hierarchy["sub_type"],
+        "language": hierarchy["language"],
+        "title": file_path.stem,
         "content_text": doc_data.get("content_text", ""),
-        "specs": doc_data.get("specs", {}),
+        "specs": {},
         "is_primary": is_primary,
+        "is_archive": hierarchy["is_archive"],
         "file_path": str(file_path)
     }
 
@@ -201,8 +222,9 @@ async def process_file(file_path: Path, hierarchy: Dict[str, str], db, dry_run: 
     return result
 
 
-async def scan_directory(base_dir: str = "storage/files", dry_run: bool = False) -> Dict[str, Any]:
+async def scan_directory(base_dir: str = None, dry_run: bool = False) -> Dict[str, Any]:
     """Quét toàn bộ thư mục và xử lý file."""
+    base_dir = base_dir or settings.STORAGE_BASE_PATH
     base_path = Path(base_dir)
     if not base_path.exists():
         log.error("scan.dir_not_found", path=base_dir)

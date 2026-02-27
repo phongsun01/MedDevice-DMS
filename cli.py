@@ -7,6 +7,8 @@ import argparse
 import asyncio
 import sys
 from rich.console import Console
+from config import settings
+
 
 console = Console()
 
@@ -52,8 +54,8 @@ async def cmd_stats(args):
 
 async def cmd_scan(args):
     tag = "[DRY-RUN] " if args.dry_run else ""
-    console.print(f"[bold yellow]{tag}Scanning storage/files...[/bold yellow]")
-    scan_path = args.path if args.path else "storage/files"
+    console.print(f"[bold yellow]{tag}Scanning {settings.STORAGE_BASE_PATH}...[/bold yellow]")
+    scan_path = args.path if args.path else settings.STORAGE_BASE_PATH
     if args.path:
          console.print(f"Path override: {args.path}")
          
@@ -204,7 +206,7 @@ async def cmd_wiki(args):
 
 async def cmd_normalize(args):
     import subprocess
-    cmd = ["python", "scripts/normalize_folders.py", "--recursive"]
+    cmd = ["python", "scripts/normalize_folders.py", "--recursive", "--path", settings.STORAGE_BASE_PATH]
     if args.dry_run:
         cmd.append("--dry-run")
     subprocess.run(cmd)
@@ -230,9 +232,9 @@ def main():
     p_health.set_defaults(func=cmd_health)
 
     # Command: scan
-    p_scan = subparsers.add_parser("scan", help="Quét và nạp thiết bị mới từ storage/files")
+    p_scan = subparsers.add_parser("scan", help="Quét và nạp thiết bị mới từ nguồn dữ liệu")
     p_scan.add_argument("--dry-run", action="store_true", help="Preview kết quả không ghi DB")
-    p_scan.add_argument("--path", help="Chỉ định thư mục quét (default: storage/files/all)")
+    p_scan.add_argument("--path", help=f"Chỉ định thư mục quét (default: {settings.STORAGE_BASE_PATH})")
     p_scan.set_defaults(func=cmd_scan)
 
     # Command: search

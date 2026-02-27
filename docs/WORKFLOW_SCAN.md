@@ -1,60 +1,34 @@
-# Workflow: Normalize & Scan (v2.0)
+# Workflow: Normalize & Scan (v2.1)
 
-> Quy trình 2 giai đoạn: **Phase 0 (Normalize)** → **Phase 2 (Scan & Import)**  
-> Phase 0 chỉ chạy 1 lần duy nhất.
+> Quy trình chuẩn hóa dữ liệu cũ sang cấu trúc phẳng và nạp vào hệ thống.
 
 ---
 
-## Phase 0 — Normalize (Chỉ chạy 1 lần)
+## Phase 0 — Normalize (Dành cho dữ liệu cũ)
 
-### Bước 0.1 — Rename folder về kebab-case
+Bước này giúp đưa dữ liệu từ cấu trúc folder lộn xộn về cấu trúc chuẩn: `Category / Group / Device / tech-file-vi.pdf`.
+
+### Bước 0.1 — Chuẩn hóa Folder & File
+
+Sử dụng script `normalize_data_v2.py`:
+- Tự động đổi tên folder sang `kebab-case`.
+- Tự động nhận diện `Group` (`ct-scan`, `sieu-am`...) dựa trên PRD.
+- Làm phẳng thư mục: Toàn bộ file từ thư mục con (ví dụ: `QĐTT`) được đưa ra thư mục gốc của Device.
+- Tự động thêm tiền tố/hậu tố (`tech-`, `-vi`) dựa vào từ khóa tại `config/data_naming.json`.
 
 ```powershell
-# Preview (không thay đổi gì)
-python scripts/normalize_folders.py --dry-run
+# Preview (Dry-run)
+python scripts/normalize_data_v2.py
 
-# Thực hiện nếu OK
-python scripts/normalize_folders.py
+# Thực hiện thật
+python scripts/normalize_data_v2.py --run
 ```
 
 Output mong đợi:
 ```
-[DRY-RUN] Rename plan:
-  storage/files/Thiet bi chan doan hinh anh → thiet-bi-chan-doan-hinh-anh
-  storage/files/Thiet bi dieu tri → thiet-bi-dieu-tri
-  ...
-  MERGE: thiet_bi_chan_doan_hinh_anh → thiet-bi-chan-doan-hinh-anh (12 cặp)
+MOVE: Thiet bi chan doan hinh anh\Somatom Go Now\QDTT\compliance.pdf 
+  -> thiet-bi-chan-doan-hinh-anh\ct-scan\somatom-go-now\config-compliance-vi.pdf
 ```
-
-### Bước 0.2 — Tạo Group folder và di chuyển Device
-
-Thực hiện theo bảng phân nhóm (PRD Section 2.3):
-
-```
-thiet-bi-chan-doan-hinh-anh/
-├── ct-scan/      ← Somatom Go Now, CT 128 Somatom Go Top, He thong CT dem photon
-├── sieu-am/      ← Arietta 50, 6 Acuson/Resona/Arietta models
-├── c-arm/        ← Cios Fit, Cios Select
-├── dsa/          ← Azurion 7B20, DSA siemens
-├── mri/          ← MRI Siemens 0.55
-└── x-quang/      ← X Quang Examion, FDR 68S
-```
-
-**Chạy script tạo subfolder cho mỗi device:**
-```powershell
-python scripts/create_doc_subfolders.py
-```
-
-### Bước 0.3 — Di chuyển file hiện có vào subfolder đúng
-
-Với **Somatom Go Now** làm mẫu đầu tiên:
-
-| File gốc | Chuyển vào |
-|---|---|
-| `2. Chuong V...IB*.doc` | `config/compliance/` |
-| `CT 32 SOMATOM*.xlsx` | `config/bidding/` |
-| File `.doc` + `.pdf` cùng stem | Cả 2 vào cùng thư mục |
-| `IB Download.zip` | Giải nén → phân loại → `other/archive/` (zip gốc) |
 
 ---
 

@@ -2,6 +2,9 @@
 MedDevice DMS - Configuration (Pydantic Settings)
 """
 from pydantic_settings import BaseSettings
+import json
+from pathlib import Path
+
 
 
 class Settings(BaseSettings):
@@ -27,7 +30,16 @@ class Settings(BaseSettings):
     OUTLINE_API_TOKEN: str = ""
 
     # Storage
-    STORAGE_BASE_PATH: str = "./storage/files"
+    STORAGE_BASE_PATH: str = "D:\\MedicalData"
+
+    @property
+    def data_naming(self) -> dict:
+        """Load naming prefixes and suffixes from config/data_naming.json."""
+        config_path = Path(__file__).parent / "config" / "data_naming.json"
+        if config_path.exists():
+            with open(config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return {"prefixes": {}, "suffixes": {}}
 
     class Config:
         env_file = ".env"

@@ -17,8 +17,9 @@ Quy trình theo thứ tự: User gửi tài liệu qua Telegram → Agent xử l
 
 ### Telegram Bot
 
-- Nhận file/tài liệu từ user, forward vào Antigravity workspace qua webhook.[^1]
-- Xử lý lệnh query (tìm kiếm/so sánh), gửi kết quả realtime (text/table/wiki link).[^2]
+- Đóng vai trò **Relay (Trạm trung chuyển)**. Nhận tin nhắn (Free-text) và tài liệu upload từ người dùng.
+- Gửi trực tiếp toàn bộ dữ liệu qua API lên **Headless Antigravity Agent** để AI phân tích và xử lý.
+- Nhận kết quả từ Agent (Markdown text, Bảng biểu Excel, Link Wiki) và hiển thị cho người dùng.[^1]
 
 
 ### Antigravity Agents
