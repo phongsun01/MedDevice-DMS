@@ -58,7 +58,9 @@ class Normalizer:
         self.known_groups = [
             "ct-scan", "sieu-am", "c-arm", "dsa", "mri", "x-quang",
             "may-sinh-hoa", "may-huyet-hoc", "may-mien-dich", "xet-nghiem-sinh-hoa",
-            "he-thong-x-quang", "he-thong-ct", "may-chup-cat-lop"
+            "he-thong-x-quang", "he-thong-ct", "may-chup-cat-lop",
+            "ban-mo", "den-mo", "may-gay-me", "may-tho", "monitor",
+            "bon-rua-tay", "bo-dung-cu", "tu-lanh", "tu-am"
         ]
 
     def classify_file(self, filename):
@@ -129,25 +131,24 @@ class Normalizer:
             is_archive = "archive" in [p.lower() for p in parts]
             
             # Logic to infer Group and Device (v2.1)
-            p1 = to_kebab(parts[1])
+            # Step 1: Detect Device by skipping temporary 'chung' and 'other-group' levels
+            current_device_idx = 1
+            while current_device_idx < len(parts) and parts[current_device_idx] in ["chung", "other-group"]:
+                current_device_idx += 1
             
-            # Step 1: Detect Device and Group
-            current_device = "unknown"
+            if current_device_idx < len(parts):
+                current_device = to_kebab(parts[current_device_idx])
+            else:
+                current_device = "unknown"
+            
             current_group = "other-group"
             
-            if p1 == "chung" and len(parts) >= 3:
-                # If we are in the 'chung' folder I accidentally created, look deeper
-                current_device = to_kebab(parts[2])
-            elif p1 in self.known_groups:
+            # Step 2: Refine Group based on Device Name Prefix or existing path
+            # Check p1 if it was already a valid group
+            p1 = to_kebab(parts[1])
+            if p1 in self.known_groups:
                 current_group = p1
-                if len(parts) >= 3:
-                    current_device = to_kebab(parts[2])
-                else:
-                    current_device = "chung"
-            else:
-                current_device = p1
-
-            # Step 2: Refine Group based on Device Name Prefix
+            
             if current_group == "other-group":
                 # Check mapping first
                 if current_device in self.device_to_group:
