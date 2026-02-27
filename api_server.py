@@ -115,29 +115,48 @@ async def handle_chat(request):
 
 # ─── Option A: File Classification & Execution ───────────────────────────────
 
-GEMINI_MD_PATH = Path(__file__).parent / "GEMINI.md"
+PROJECT_ROOT = Path(__file__).parent
+
+# Đường dẫn tuyệt đối đến gemini-cli (cài qua npm -g)
+GEMINI_CMD = Path(os.environ.get("APPDATA", "")) / "npm" / "gemini.cmd"
 
 def _call_gemini_cli(filename: str) -> dict | None:
     """
     Gọi gemini-cli non-interactive để phân loại file.
-    Yêu cầu gemini-cli đã được cài và đăng nhập OAuth.
+    - cwd = thư mục dự án → gemini tự đọc GEMINI.md làm context
+    - Dùng --prompt (-p) flag cho non-interactive mode
     """
-    prompt = f'Classify this file for MedDevice DMS system. Filename: "{filename}". Return JSON only.'
+    if not GEMINI_CMD.exists():
+        logger.error(f"gemini.cmd không tìm thấy tại: {GEMINI_CMD}")
+        return None
+
+    prompt = (
+        f'Classify this file for MedDevice DMS. '
+        f'Filename: "{filename}". '
+        f'Return JSON only, no explanation.'
+    )
     try:
         result = subprocess.run(
-            ["gemini", "--yolo", "-p", str(GEMINI_MD_PATH), prompt],
-            capture_output=True, text=True, timeout=30, encoding="utf-8"
+            [str(GEMINI_CMD), "--prompt", prompt],
+            capture_output=True, text=True, timeout=45,
+            encoding="utf-8", errors="replace",
+            cwd=str(PROJECT_ROOT)   # gemini-cli tự đọc GEMINI.md từ đây
         )
         output = result.stdout.strip()
-        # Tách JSON ra khỏi output (có thể có text thừa)
+        stderr = result.stderr.strip()
+        logger.info(f"gemini-cli exit={result.returncode}, stdout={output[:300]}")
+        if stderr:
+            logger.warning(f"gemini-cli stderr: {stderr[:200]}")
+
+        # Tách JSON ra khỏi output
         start = output.find("{")
         end = output.rfind("}") + 1
         if start >= 0 and end > start:
             return json.loads(output[start:end])
-        logger.error(f"gemini-cli output không phải JSON: {output[:200]}")
+        logger.error(f"gemini-cli output không chứa JSON: {output[:300]}")
         return None
     except subprocess.TimeoutExpired:
-        logger.error("gemini-cli timeout")
+        logger.error("gemini-cli timeout (>45s)")
         return None
     except json.JSONDecodeError as e:
         logger.error(f"JSON parse error từ gemini-cli: {e}")
