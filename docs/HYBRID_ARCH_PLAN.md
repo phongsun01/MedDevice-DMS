@@ -1,97 +1,126 @@
-# Kế hoạch Kiến trúc Hybrid: Option A (Antigravity-Mediated) — v2.3.0
+# Kế hoạch Kiến trúc Hybrid — v2.3.0
 
-> **Phiên bản:** v2.3.0 | **Cập nhật:** 2026-02-27  
-> **Mục tiêu:** Biến Bot Telegram thành giao diện quản trị thực sự — người dùng gửi file, nhận đề xuất phân loại từ AI, xác nhận, và hệ thống tự động xử lý.
-
----
-
-## 1. Hai chế độ hoạt động (A vs B)
-
-| | **Option B** (hiện tại — v2.2.0) | **Option A** (mục tiêu — v2.3.0) |
-|---|---|---|
-| **Luồng** | User → Bot → Gemini API → Bot → User | User → Bot → API Server → [AI Classify + CLI Execute] → Bot → User |
-| **AI tham gia** | Chỉ trả lời chat | Ra quyết định + thực thi lệnh CLI thật |
-| **Tác động hệ thống** | Không đổi file | Di chuyển file, cập nhật DB, đổi tên |
-| **Quota** | Mỗi tin nhắn = 1 API call | Mỗi lần upload file = 1 API call duy nhất |
-| **Kích hoạt** | `AGENT_MODE=B` trong `.env` | `AGENT_MODE=A` trong `.env` |
+> **Phiên bản:** v2.3.0 | **Cập nhật:** 2026-02-27
 
 ---
 
-## 2. Use Case cốt lõi: Upload File → Phân loại có xác nhận
+## 1. So sánh ba chế độ hoạt động
 
-### Luồng đầy đủ (Option A)
+| | **Option B** *(đang chạy)* | **Option A** *(ưu tiên làm)* | **Option C** *(tương lai)* |
+|---|---|---|---|
+| **Luồng** | User → Bot → Gemini API → User | User → Bot → **gemini-cli** → CLI Tools → User | User → Bot → **Antigravity IDE** → User |
+| **AI xử lý** | Gemini Flash (trả lời chat) | gemini-cli (Agentic, chạy terminal) | Tôi (Antigravity IDE agent) |
+| **Thực thi file/DB** | Không | ✅ Có (rename, move, scan DB) | ✅ Có (toàn quyền) |
+| **Chạy 24/7** | ✅ Có | ✅ Có (terminal chạy nền) | ❌ Cần IDE mở |
+| **Quota** | ~15 RPM free | **60 RPM / 1000 req/ngày** (OAuth) | Quota IDE riêng |
+| **Kích hoạt** | `AGENT_MODE=B` | `AGENT_MODE=A` | `AGENT_MODE=C` |
+
+---
+
+## 2. Option A: gemini-cli làm Agentic Worker
+
+### Tại sao gemini-cli phù hợp hơn API key thuần?
+- **Quota cao hơn nhiều:** Login OAuth → 60 RPM / 1,000 req/ngày MIỄN PHÍ (so với ~15 RPM của API key free)
+- **Agentic loop:** gemini-cli tự quyết định gọi tool (file system, terminal) không cần prompt phức tạp
+- **Non-interactive mode:** Bot có thể pipe lệnh thẳng vào gemini-cli, nhận JSON output trở về
+- **GEMINI.md context:** Tiêm toàn bộ cấu trúc DMS, naming convention → AI hiểu ngay không cần giải thích
+
+### Luồng Upload File (Option A với gemini-cli)
 
 ```
-1. User gửi file "arrieta60.pdf" vào Group Telegram
-2. Bot nhận file → download về tmp/
-3. Bot gọi api_server: POST /api/classify_file {filename, size, ...}
-4. API Server gọi Gemini 1 lần: "Phân loại file này theo chuẩn DMS"
-   → Gemini trả về: {device: "arrieta-60", category: "sieu-am", doc_type: "tech", lang: "vi"}
-5. Bot hỏi lại User (Inline Keyboard):
-   ┌────────────────────────────────────────┐
-   │ 📁 Đề xuất phân loại:                 │
-   │ Tên file: tech-arrieta-60-vi.pdf       │
-   │ Thư mục: sieu-am/arrieta-60/           │
-   │                                        │
-   │  ✅ Xác nhận  │  ✏️ Sửa  │  ❌ Huỷ  │
-   └────────────────────────────────────────┘
-6. User nhắn: "đây là hợp đồng"
-7. Bot cập nhật: {doc_type: "contract"} → tên mới: contract-arrieta-60-vi.pdf
-8. Bot hỏi xác nhận lần 2
-9. User: ✅ Xác nhận
-10. Worker thực thi:
-    - Rename file
-    - Move vào D:\MedicalData\sieu-am\arrieta-60\
-    - Chạy scan_agent → ghi vào SurrealDB
-11. Bot phản hồi: "✅ Đã phân loại và nạp vào hệ thống!"
+1. User gửi file "arrieta60.pdf" vào Telegram Group
+2. Bot nhận file, download về tmp/
+3. Bot gọi API Server: POST /api/classify_file {filename}
+4. API Server pipe vào gemini-cli:
+   echo "Classify file: arrieta60.pdf theo chuẩn MedDevice DMS" | gemini -p @GEMINI.md
+   → Output: {device: "arrieta-60", category: "sieu-am", doc_type: "tech", lang: "vi"}
+5. Bot hỏi User (Inline Keyboard):
+   📁 Đề xuất: tech-arrieta-60-vi.pdf → sieu-am/arrieta-60/
+   [✅ Xác nhận] [✏️ Sửa] [❌ Huỷ]
+6. User sửa: "đây là hợp đồng"
+7. Bot cập nhật: contract-arrieta-60-vi.pdf → sieu-am/arrieta-60/
+8. User: ✅ Xác nhận
+9. API Server thực thi:
+   - Rename + Move file
+   - python cli.py scan --path "sieu-am/arrieta-60/"
+   - Ghi SurrealDB
+10. Bot: "✅ Đã phân loại và nạp vào hệ thống!"
 ```
 
-**Lưu ý quan trọng về quota:** Gemini chỉ được gọi đúng 1 lần tại bước 4. Toàn bộ vòng hỏi-sửa-xác nhận là pure Python, không tốn thêm API call.
+**Tiết kiệm Quota:** gemini-cli chỉ gọi 1 lần tại bước 4. Toàn bộ vòng sửa-xác nhận là pure Python.
+
+### Setup gemini-cli cho Option A
+
+```bash
+# Đăng nhập OAuth (60 RPM / 1000 req/ngày miễn phí)
+gemini auth login
+
+# Tạo GEMINI.md (context file cho dự án)
+# → Tiêm naming convention, cấu trúc thư mục, danh sách Category/Group
+
+# Test non-interactive mode
+echo "Classify file: somatom-datasheet.pdf" | gemini --output-format json
+```
 
 ---
 
-## 3. Các thay đổi kỹ thuật cần thực hiện
+## 3. Option C: Antigravity IDE trực tiếp xử lý
 
-### 3.1 API Server (`api_server.py`)
-- Thêm endpoint: `POST /api/classify_file` — nhận tên file, gọi Gemini, trả về JSON đề xuất.
-- Thêm endpoint: `POST /api/execute_task` — nhận lệnh đã được user xác nhận, gọi CLI Worker để rename+move+scan.
+### Cơ chế hoạt động
+Option C là khi **bạn đang ngồi làm việc** và muốn Bot Telegram kết nối thẳng với tôi (Antigravity đang chạy trong IDE) để tôi trực tiếp phân tích và ra quyết định.
 
-### 3.2 Bot Handlers (`bot/handlers/files.py`)
-- Nâng cấp handler nhận file: thay vì chỉ download, sẽ gọi `/api/classify_file` và tạo Inline Keyboard xác nhận.
-- Xử lý callback khi user sửa tên file / chọn doc_type khác.
-- Khi xác nhận xong: gọi `/api/execute_task`.
+```
+User nhắn Bot: "Phân loại file arrieta60.pdf"
+  ↓
+Bot ghi yêu cầu vào "inbox queue" (file JSON hoặc SQLite)
+  ↓
+Antigravity IDE (tôi) đọc queue → phân tích → thực thi
+  ↓
+Tôi ghi kết quả vào "outbox queue"
+  ↓
+Bot đọc outbox → gửi trả lời cho User
+```
 
-### 3.3 CLI Worker (`cli.py` → expose as module)
-- Chuyển `cmd_scan`, `cmd_normalize` thành pure Python async function (không phụ thuộc argparse) để API Server có thể import và gọi trực tiếp.
+### Khác Option A ở điểm nào?
+- Option A: gemini-cli chạy **tự động theo lệnh cứng**, không cần tôi ngồi xem.
+- Option C: **Tôi ngồi review và quyết định** — phù hợp cho tác vụ phức tạp cần suy xét nhiều hơn (vd: tái cơ cấu toàn bộ thư mục, phân tích bất thường).
 
-### 3.4 Config (`config.py`)
-- Thêm biến `AGENT_MODE: str = "B"` — mặc định là Option B.
-- Thêm biến `/switch_mode` trong Telegram: Admin có thể chuyển A/B runtime.
-
-### 3.5 Naming Logic (`agents/normalize_agent.py`) — [NEW]
-- Module mới: nhận `{filename, doc_type, lang, device}` → trả về tên file chuẩn hóa theo convention `{prefix}-{device-slug}-{lang}.{ext}`.
+### Giới hạn thực tế
+⚠️ **Option C chỉ hoạt động khi IDE đang mở.** Không phù hợp cho 24/7 production, nhưng rất phù hợp cho Admin sessions (sáng bật IDE lên, xử lý batch, chiều tắt).
 
 ---
 
 ## 4. Lộ trình triển khai (v2.3.0)
 
-| Bước | Công việc | File liên quan |
+### Ưu tiên 1: Option A với gemini-cli
+
+| Bước | Công việc | File |
 |---|---|---|
-| 1 | Refactor CLI functions thành importable module | `cli.py` |
-| 2 | Viết `normalize_agent.py` (naming logic) | `agents/normalize_agent.py` |
-| 3 | Thêm `/api/classify_file` endpoint | `api_server.py` |
-| 4 | Thêm `/api/execute_task` endpoint | `api_server.py` |
-| 5 | Nâng cấp `bot/handlers/files.py` với Inline KB | `bot/handlers/files.py` |
-| 6 | Thêm `AGENT_MODE` vào config + `/switch_mode` | `config.py`, `bot/handlers/relay.py` |
-| 7 | Test end-to-end: upload → classify → confirm → execute | `tests/test_file_classify.py` |
+| 1 | Tạo `GEMINI.md` — context file DMS cho gemini-cli | `GEMINI.md` |
+| 2 | Viết `agents/normalize_agent.py` (naming logic) | `agents/normalize_agent.py` |
+| 3 | Thêm `/api/classify_file` endpoint (gọi gemini-cli) | `api_server.py` |
+| 4 | Thêm `/api/execute_task` endpoint (chạy CLI tools) | `api_server.py` |
+| 5 | Nâng cấp `bot/handlers/files.py` với Inline Keyboard | `bot/handlers/files.py` |
+| 6 | Thêm `AGENT_MODE` vào config + `/switch_mode` lệnh | `config.py` |
+| 7 | Test end-to-end | `tests/test_file_classify.py` |
+
+### Ưu tiên 2: Option C (Queue Bridge)
+*(Tiếp theo sau khi Option A hoàn thành)*
+
+| Bước | Công việc | File |
+|---|---|---|
+| 1 | Viết `core/queue.py` — đọc/ghi inbox/outbox | `core/queue.py` |
+| 2 | Thêm `/api/chat_to_ide` endpoint trong API Server | `api_server.py` |
+| 3 | Bot polling queue outbox mỗi 5s và gửi trả lời | `bot/handlers/relay.py` |
 
 ---
 
-## 5. Câu hỏi đã clarify
+## 5. Quyết định đã chốt
 
 | Câu hỏi | Quyết định |
 |---|---|
-| Bridge type | **A1 (Subprocess/Import)** — Worker chạy ngay trong API Server, không cần Queue |
-| Runtime của Agent | **Worker Python 24/7** do bạn chạy; IDE Antigravity lập trình hành vi |
-| Tính năng đầu tiên | **Upload file → Chat điều phối → Bot xác nhận** |
-| Quota | Gemini chỉ gọi 1 lần/upload — tiết kiệm tối đa |
+| Option A dùng AI gì? | **gemini-cli** (OAuth, 60 RPM free) — không phải API key |
+| Thực thi lệnh | Import trực tiếp CLI functions — không cần Queue |
+| Quota | gemini-cli gọi 1 lần/upload |
+| Option C runtime | Queue file (inbox/outbox pattern) |
+| Thứ tự ưu tiên | **A trước → C sau** |
