@@ -9,6 +9,7 @@ env/
 .env
 .env.outline
 .env.outline.local
+.env.docker
 
 # Docker / DB data
 data/
