@@ -1,16 +1,16 @@
-# MedDevice DMS
+# MedDevice DMS — Hệ thống Quản lý Tài liệu Thiết bị Y tế (v2.2.0)
 
-**Hệ thống Quản lý Hồ sơ Thiết bị Y tế (Medical Device Document Management System)**
+> Tầm nhìn: Biến thư mục file lưu trữ tuỳ tiện và hỗn độn thành kho tri thức có cấu trúc (Knowledge Base) thông qua Antigravity IDE Agents. Người dùng cuối có thể chat bằng ngôn ngữ tự nhiên để tìm kiếm thay vì mở từng file thủ công.
 
-MedDevice DMS là giải pháp quản lý hồ sơ kỹ thuật, thông số và so sánh thiết bị y tế toàn diện dựa trên nền tảng AI và SurrealDB. Hệ thống cho phép người dùng tương tác từ xa qua Telegram Bot và tra cứu dữ liệu dạng Wiki.
+---
 
-## 🌟 Tính năng chính
-
-- **Cấu trúc phẳng (v2.1)**: Category > Group > Device với tài liệu được phân loại tự động qua Prefix/Suffix.
-- **Lưu trữ tùy chỉnh**: Cho phép cấu hình đường dẫn lưu trữ ngoài (ví dụ: `D:\MedicalData`).
-- **Tìm kiếm AI**: Full-text search trong PDF, Word & Excel (SurrealDB + Gemini).
-- **So sánh tự động**: Trích xuất và so sánh thông số kỹ thuật giữa các thiết bị.
-- **Telegram Bot**: Tra cứu qua Relay mode, đẩy yêu cầu tới Headless Agent.
+## Tính năng chính
+- **Tự động quét và chuẩn hoá:** Tự sửa tên file, quét toàn bộ cây thư mục `storage/files/` và gán thể loại thông minh.
+- **Rút trích thông số bằng AI (Gemini 2.0 Flash):** Tự động đọc PDF kỹ thuật, rút trích 40+ thông số cấu hình phần cứng.
+- **Tra cứu Vector & Full-text:** Tìm thiết bị theo tính năng ("Máy chụp CT có AI giảm liều tia") bằng CSDL Graph SurrealDB.
+- **So sánh & Báo cáo:** Tự động so sánh hai dòng máy và xuất báo cáo chênh lệch ra file Excel định dạng đẹp.
+- **Bot Telegram & Context Memory:** Chatbot Telegram có trí nhớ ngắn hạn. Hiểu đại từ nhân xưng và tự tiếp nối câu chuyện, tự định tuyến gọi tool.
+- **Đồng bộ Wiki:** Đẩy toàn bộ thông số lên trang văn bản nội bộ Outline.dev.
 - **Wiki (Outline)**: Trang Wiki tự động cập nhật từ cơ sở dữ liệu.
 - **Bulk Import**: Nạp hàng loạt từ thư mục local bằng `import_local.py`.
 - **Audit Log**: Ghi nhật ký toàn bộ thao tác.

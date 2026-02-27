@@ -212,7 +212,7 @@ python cli.py classify --file <path>           # Phân loại 1 file cụ thể
 | **Phase 0** | Normalize folder + merge dupes + thêm Group | 🔲 Tiếp theo |
 | **Phase 1** | DB Schema + Docker + Bot cơ bản | ✅ Hoàn thành |
 | **Phase 2** | CLI (`cli.py`) + Scan Agent nâng cấp | 🔲 Kế tiếp |
-| **Phase 3** | Gemini 2.0 + Phân loại thông minh | 🔲 Phase sau |
+| **Phase 3** | Gemini 2.0 API Server + Memory Management + LLM Routing | 🔲 Đang triển khai |
 | **Phase 4** | Compare Agent + XLSX export | 🔲 Phase sau |
 | **Phase 5** | Semantic search + RAG | 🔲 Tương lai |
 
