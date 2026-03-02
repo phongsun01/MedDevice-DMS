@@ -22,6 +22,15 @@ db/redis/
 storage/files/*
 !storage/files/.gitkeep
 storage/backups/
+storage/memory.db
+
+# Logs and Debug
+*.txt
+*.log
+diag_out.txt
+import_log.txt
+normalize_debug*.txt
+extracted_specs.txt
 
 # IDEs
 .vscode/
